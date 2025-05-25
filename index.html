@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Royal Rummy</title>
+  <title>Rummy Royale</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #141e30, #243b55);
+      background: linear-gradient(to bottom right, #1a1a2e, #16213e);
       color: #fff;
       overflow-x: hidden;
     }
@@ -42,6 +42,7 @@
       flex-wrap: wrap;
       justify-content: center;
       margin: 10px;
+      transition: all 0.3s ease-in-out;
     }
     .card-img {
       width: 60px;
@@ -71,6 +72,7 @@
       padding: 10px;
       border-radius: 10px;
       display: none;
+      max-width: 200px;
     }
     .chat-bubble {
       position: absolute;
@@ -112,6 +114,16 @@
       flex-wrap: wrap;
       justify-content: center;
     }
+    #meldArea {
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .meld-selected {
+      border: 3px solid #00ffcc;
+      transform: scale(1.1);
+    }
     @media (max-width: 600px) {
       .card-img {
         width: 45px;
@@ -122,10 +134,21 @@
         height: 50px;
       }
     }
+#fireworks {
+  z-index: 9999;
+}
+
+#royalPanel label {
+  font-size: 16px;
+  margin: 10px;
+  color: #fff;
+}
+
+    
   </style>
 </head>
 <body>
-<h1>Royal Rummy</h1>
+<h1>Rummy Royale</h1>
 
 <div id="lobby" style="text-align:center">
   <div>
@@ -157,6 +180,7 @@
     </div>
     <div id="handTitle"><strong>Your Hand</strong></div>
     <div class="cards" id="hand"></div>
+    <div class="cards" id="meldArea"></div>
     <div id="yourAvatar" class="your-area"></div>
     <button id="startBtn" onclick="startGame()" style="display:none">Start Game</button>
   </div>
@@ -174,7 +198,21 @@
   </div>
 </div>
 
-<!-- SCRIPT will be pasted in PART 2 -->
+
+<!-- Leaderboard & Settings Panel -->
+<div id="royalPanel" style="text-align:center; margin-top:20px; display:none;">
+  <h2>Leaderboard</h2>
+  <ul id="leaderboard" style="list-style:none; padding:0; color:#facc15;"></ul>
+
+  <h3>Settings</h3>
+  <label>
+    <input type="checkbox" id="soundToggle" checked> Sound Effects
+  </label>
+  <label style="margin-left:20px;">
+    <input type="checkbox" id="timerToggle"> Turn Timer (10s)
+  </label>
+</div>
+  
 <script>
 // ✅ Firebase Config
 const config = {
@@ -190,8 +228,8 @@ firebase.initializeApp(config);
 const db = firebase.database();
 
 let gameCode = "", playerId = "", playerName = "", avatar = "", hasDrawn = false;
+let selectedCards = [];
 
-// 🔑 Create/Join Functions
 function generateCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -225,7 +263,6 @@ function joinGame() {
   });
 }
 
-// 📡 Realtime Listeners
 function listen() {
   const g = `games/${gameCode}`;
   db.ref(`${g}/status`).on("value", s => {
@@ -233,7 +270,11 @@ function listen() {
     document.getElementById("controls").style.display = status === "started" ? "flex" : "none";
     document.getElementById("chatBox").style.display = status === "started" ? "block" : "none";
     document.getElementById("turnInfo").style.display = status === "started" ? "block" : "none";
+    if (status === "started") {
+      document.getElementById("startBtn").style.display = "none";
+    }
   });
+
   db.ref(`${g}/players`).on("value", snap => {
     const players = snap.val() || {};
     const others = Object.entries(players).filter(([id]) => id !== playerId);
@@ -242,6 +283,7 @@ function listen() {
     ).join("");
     document.getElementById("yourAvatar").innerHTML = `<div>${playerName}</div><img class='avatar-image' src='https://api.dicebear.com/7.x/thumbs/svg?seed=${avatar}'/>`;
   });
+
   db.ref(`${g}/turn`).on("value", s => {
     const turn = s.val();
     db.ref(`${g}/players/${turn}`).once("value").then(p => {
@@ -249,26 +291,12 @@ function listen() {
       document.getElementById("turnInfo").innerText = turn === playerId ? "Your Turn!" : `${name}'s Turn`;
     });
   });
+
   db.ref(`${g}/players/${playerId}/hand`).on("value", s => {
     const hand = s.val() || [];
-    const grouped = {};
-    hand.forEach(c => {
-      const suit = c.split(" ")[2];
-      if (!grouped[suit]) grouped[suit] = [];
-      grouped[suit].push(c);
-    });
-    for (let s in grouped) grouped[s].sort();
-    const sorted = Object.values(grouped).flat();
-    const div = document.getElementById("hand");
-    div.innerHTML = "";
-    sorted.forEach((c, i) => {
-      const img = document.createElement("img");
-      img.className = "card-img";
-      img.src = getCardImage(c);
-      img.onclick = () => discard(i);
-      div.appendChild(img);
-    });
+    renderHand(hand);
   });
+
   db.ref(`${g}/chat`).on("child_added", snap => {
     const msg = snap.val();
     const bubble = document.createElement("div");
@@ -279,7 +307,40 @@ function listen() {
   });
 }
 
-// 🕹️ Game Flow
+function renderHand(hand) {
+  const grouped = {};
+  hand.forEach(c => {
+    const suit = c.split(" ")[2];
+    if (!grouped[suit]) grouped[suit] = [];
+    grouped[suit].push(c);
+  });
+  for (let s in grouped) grouped[s].sort();
+  const sorted = Object.values(grouped).flat();
+
+  const div = document.getElementById("hand");
+  div.innerHTML = "";
+  sorted.forEach((c, i) => {
+    const img = document.createElement("img");
+    img.className = "card-img";
+    img.src = getCardImage(c);
+    img.onclick = () => toggleSelect(c, i);
+    if (selectedCards.includes(c)) img.classList.add("meld-selected");
+    div.appendChild(img);
+  });
+}
+
+function toggleSelect(card, index) {
+  if (selectedCards.includes(card)) {
+    selectedCards = selectedCards.filter(c => c !== card);
+  } else {
+    selectedCards.push(card);
+  }
+  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(snap => {
+    const hand = snap.val() || [];
+    renderHand(hand);
+  });
+}
+
 function startGame() {
   const suits = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
   const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
@@ -300,6 +361,7 @@ function startGame() {
     db.ref(`${g}/turn`).set("player1");
   });
 }
+
 function drawCard() {
   const g = `games/${gameCode}`;
   db.ref(`${g}/turn`).once("value").then(t => {
@@ -318,6 +380,7 @@ function drawCard() {
     });
   });
 }
+
 function discard(index) {
   if (!hasDrawn) return alert("Draw a card first!");
   const g = `games/${gameCode}`;
@@ -332,21 +395,56 @@ function discard(index) {
       const next = ids[(i + 1) % ids.length];
       db.ref(`${g}/turn`).set(next);
       hasDrawn = false;
+      selectedCards = [];
     });
   });
 }
-function sortHand() {
-  const g = `games/${gameCode}`;
-  db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
-    const hand = h.val();
-    hand.sort();
-    db.ref(`${g}/players/${playerId}/hand`).set(hand);
+
+
+
+  function meld() {
+  if (selectedCards.length < 3) return alert("Select at least 3 cards to form a meld.");
+  const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+  const isSet = selectedCards.every((c, i, arr) => {
+    const [rank1,, suit1] = c.split(" ");
+    return arr.every(x => {
+      const [r, , s] = x.split(" ");
+      return r === rank1 && s !== suit1;
+    });
   });
+
+  const sorted = selectedCards
+    .map(c => {
+      const [rank,, suit] = c.split(" ");
+      return { rank, suit, index: rankOrder.indexOf(rank), card: c };
+    })
+    .sort((a, b) => a.index - b.index);
+
+  let isRun = true;
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].suit !== sorted[0].suit || sorted[i].index !== sorted[i-1].index + 1) {
+      isRun = false;
+      break;
+    }
+  }
+
+  if (isSet || isRun) {
+    alert("✅ Meld Successful!");
+    db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(h => {
+      let hand = h.val();
+      selectedCards.forEach(card => {
+        const i = hand.indexOf(card);
+        if (i !== -1) hand.splice(i, 1);
+      });
+      db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
+      selectedCards = [];
+    });
+  } else {
+    alert("❌ Invalid meld. Must be same rank or same suit in sequence.");
+  }
 }
-function meld() {
-  alert("🧠 Meld visual selection coming soon!\nFor now, it checks only basic valid groups.");
-  // future: interactive meld UI
-}
+
 function resetGame() {
   if (confirm("Reset game for all players?")) {
     db.ref(`games/${gameCode}`).remove();
@@ -354,7 +452,6 @@ function resetGame() {
   }
 }
 
-// 💬 Chat + Voice
 function sendChat() {
   const text = document.getElementById("chatInput").value;
   if (!text) return;
@@ -364,11 +461,153 @@ function sendChat() {
 function sendQuick(text) {
   db.ref(`games/${gameCode}/chat`).push({ name: playerName, text });
 }
+
 function getCardImage(card) {
   const rankMap = { A: "A", J: "J", Q: "Q", K: "K", "10": "0" };
   const suitMap = { Spades: "S", Hearts: "H", Diamonds: "D", Clubs: "C" };
   const [rank, , suit] = card.split(" ");
   return `https://deckofcardsapi.com/static/img/${rankMap[rank] || rank}${suitMap[suit]}.png`;
 }
+
+// 🎙️ Voice chat setup (simplified placeholder)
+navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+  console.log("🎤 Voice chat ready");
+  // You can now use stream to connect with other peers (via WebRTC)
+}).catch(e => {
+  console.warn("🎙️ Mic not granted");
+});
+
+// 🎇 Fireworks Animation
+function launchFireworks() {
+  const canvas = document.getElementById("fireworks");
+  const ctx = canvas.getContext("2d");
+  canvas.style.display = "block";
+
+  let particles = [];
+  const colors = ["#ffcc00", "#ff3366", "#66ccff", "#ccff66"];
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  for (let i = 0; i < 100; i++) {
+    particles.push({
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      dx: (Math.random() - 0.5) * 10,
+      dy: (Math.random() - 0.5) * 10,
+      life: 100,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
+  }
+
+  const interval = setInterval(() => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      p.x += p.dx;
+      p.y += p.dy;
+      p.life--;
+    });
+    particles = particles.filter(p => p.life > 0);
+    if (particles.length === 0) {
+      clearInterval(interval);
+      canvas.style.display = "none";
+    }
+  }, 30);
+}  
 </script>
+</body>
 </html>
+
+
+
+
+
+<!-- Fireworks Canvas -->
+<canvas id="fireworks" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; display:none;"></canvas>
+
+
+
+// ✅ Win logic override to include fireworks + leaderboard
+function declareVictory(name) {
+  if (document.getElementById("soundToggle").checked) playSound("win");
+  launchFireworks();
+  saveWin(name);
+  alert(`🎉 ${name} wins the game!`);
+  db.ref(`games/${gameCode}/status`).set("ended");
+}
+
+// 📈 Save win to leaderboard in Firebase
+function saveWin(name) {
+  const ref = db.ref("leaderboard/" + name);
+  ref.once("value").then(snap => {
+    const count = snap.val() || 0;
+    ref.set(count + 1);
+    loadLeaderboard();
+  });
+}
+
+// 🏆 Load leaderboard data
+function loadLeaderboard() {
+  db.ref("leaderboard").once("value").then(snap => {
+    const data = snap.val() || {};
+    const list = Object.entries(data)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, score]) => `<li>${name}: ${score} win(s)</li>`).join("");
+    document.getElementById("leaderboard").innerHTML = list;
+  });
+}
+
+// 🔊 Sound FX with toggle
+const sounds = {
+  draw: new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_f107c37df2.mp3"),
+  win: new Audio("https://cdn.pixabay.com/audio/2021/08/04/audio_5118d22dd5.mp3"),
+  discard: new Audio("https://cdn.pixabay.com/audio/2022/04/11/audio_cfc0d9df44.mp3")
+};
+function playSound(type) {
+  if (!document.getElementById("soundToggle").checked) return;
+  if (sounds[type]) {
+    sounds[type].currentTime = 0;
+    sounds[type].play();
+  }
+}
+
+// 🕒 Optional Turn Timer Logic
+let turnTimer;
+function startTurnTimer() {
+  clearInterval(turnTimer);
+  if (!document.getElementById("timerToggle").checked) return;
+
+  let seconds = 10;
+  turnTimer = setInterval(() => {
+    seconds--;
+    console.log("Timer:", seconds);
+    if (seconds === 0) {
+      clearInterval(turnTimer);
+      alert("⏱️ Time up! You missed your turn.");
+      discardAuto();
+    }
+  }, 1000);
+}
+
+// 💡 Auto discard if time runs out
+function discardAuto() {
+  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(h => {
+    const hand = h.val();
+    if (!hand || hand.length === 0) return;
+    discard(0);
+  });
+}
+
+// 🧠 Inject declareVictory into meld() on valid success
+// Replace inside your meld() function:
+if (isSet || isRun) {
+  declareVictory(playerName);
+  selectedCards = [];
+}
+
+
+

@@ -5,216 +5,312 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rummy Multiplayer</title>
 
-  <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
-
-  <!-- Styling -->
   <style>
     body {
-      font-family: 'Roboto', sans-serif;
-      background-color: #005f73;
-      color: #fff;
       margin: 0;
-      padding: 0;
-    }
-
-    .container {
-      max-width: 800px;
-      margin: auto;
-      padding: 20px;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0f172a;
+      color: #fff;
       text-align: center;
     }
 
     h1 {
-      margin-top: 30px;
-      font-size: 36px;
-      color: #ffd166;
-    }
-
-    .login-section, .game-section {
+      font-size: 32px;
+      color: #facc15;
       margin-top: 20px;
     }
 
-    input {
+    input, select, button {
       padding: 10px;
-      width: 200px;
       font-size: 16px;
+      margin: 10px;
       border-radius: 5px;
       border: none;
     }
 
     button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-left: 10px;
-      background-color: #ffd166;
-      border: none;
+      background-color: #facc15;
       color: #000;
-      border-radius: 5px;
       cursor: pointer;
+    }
+
+    .player-bar {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+      gap: 15px;
+    }
+
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: #ddd;
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+    }
+
+    .card-img {
+      width: 70px;
+      height: 100px;
+      margin: 5px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .card-img:hover {
+      transform: scale(1.1);
     }
 
     .cards {
       display: flex;
-      justify-content: center;
       flex-wrap: wrap;
-      margin: 20px 0;
-    }
-
-    .card {
-      background-color: white;
-      color: black;
-      border-radius: 8px;
-      padding: 10px;
-      margin: 5px;
-      width: 70px;
-      height: 100px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      font-weight: bold;
+      margin-top: 15px;
     }
 
-    .game-info {
-      margin-top: 10px;
+    .info {
+      margin: 10px;
       font-size: 18px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Rummy Multiplayer</h1>
 
-    <div class="login-section" id="loginSection">
-      <input type="text" id="playerName" placeholder="Enter your name" />
-      <button onclick="joinGame()">Join Game</button>
-    </div>
+  <h1>Rummy Multiplayer</h1>
 
-    <div class="game-section" id="gameSection" style="display:none;">
-      <h2 id="turnInfo"></h2>
-      <div class="game-info">
-        <p>Deck Size: <span id="deckSize">0</span></p>
-        <p>Top Discard: <span id="topDiscard">None</span></p>
-      </div>
+  <div id="loginSection">
+    <input id="playerName" placeholder="Enter your name" />
+    <select id="avatarSelect">
+      <option value="1">👩‍🦱 Avatar 1</option>
+      <option value="2">🧑 Avatar 2</option>
+      <option value="3">👨 Avatar 3</option>
+      <option value="4">🧕 Avatar 4</option>
+    </select>
+    <button onclick="joinGame()">Join</button>
+  </div>
 
+  <div id="gameSection" style="display:none;">
+    <div class="info" id="turnInfo"></div>
+    <div class="info" id="gameStatus"></div>
+
+    <div class="player-bar" id="playerAvatars"></div>
+
+    <div class="info">
       <button onclick="drawCard()">Draw Card</button>
-      <button onclick="declareHand()">Declare</button>
-
-      <h3>Your Hand:</h3>
-      <div class="cards" id="hand"></div>
+      <button onclick="declare()">Declare</button>
+      <button id="startGameBtn" onclick="startGame()">Start Game</button>
     </div>
+
+    <div class="info">Deck Size: <span id="deckSize">0</span></div>
+    <div class="info">Top Discard: <span id="topDiscard">None</span></div>
+
+    <h3>Your Hand:</h3>
+    <div class="cards" id="hand"></div>
   </div>
 
   <script>
-    // 🧠 Paste your Firebase config here:
-const firebaseConfig = {
-  apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
-  authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
-  databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "rummy-multiplayer-fe391",
-  storageBucket: "rummy-multiplayer-fe391.firebasestorage.app",
-  messagingSenderId: "717212591323",
-  appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
-};
+  // (Keep the same firebaseConfig and init here)
+  // ... firebaseConfig and db init remain unchanged
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  const player = { name: "", avatar: "", id: "" };
+  let hasDrawn = false;
 
-    let player = "";
+  const rankMap = { "A": "A", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", "10": "0", "J": "J", "Q": "Q", "K": "K" };
+  const suitMap = { "Spades": "S", "Hearts": "H", "Diamonds": "D", "Clubs": "C" };
+  const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
-    function joinGame() {
-      player = document.getElementById("playerName").value.trim();
-      if (!player) return alert("Enter your name!");
-      db.ref(`players/${player}`).set({ hand: [] });
-      db.ref("turn").once("value").then(snap => {
-        if (!snap.exists()) {
-          db.ref("turn").set(player);
-        }
-      });
+  function getCardImage(card) {
+    const [rank,, suit] = card.split(" ");
+    return `https://deckofcardsapi.com/static/img/${rankMap[rank]}${suitMap[suit]}.png`;
+  }
+
+  function joinGame() {
+    player.name = document.getElementById("playerName").value.trim();
+    player.avatar = document.getElementById("avatarSelect").value;
+    if (!player.name) return alert("Enter name");
+
+    db.ref("game/players").once("value").then(snap => {
+      const players = snap.val() || {};
+      if (Object.keys(players).length >= 4) return alert("Max 4 players allowed");
+
+      const id = `player${Object.keys(players).length + 1}`;
+      player.id = id;
+      db.ref(`game/players/${id}`).set({ name: player.name, avatar: player.avatar, hand: [], score: 0 });
+
       document.getElementById("loginSection").style.display = "none";
       document.getElementById("gameSection").style.display = "block";
-      listenGame();
+      if (id === "player1") document.getElementById("startGameBtn").style.display = "inline-block";
+      else document.getElementById("startGameBtn").style.display = "none";
+
+      listenToGame();
+    });
+  }
+
+  function listenToGame() {
+    db.ref("game/status").on("value", s => {
+      document.getElementById("gameStatus").innerText = `Status: ${s.val()}`;
+    });
+
+    db.ref("game/players").on("value", s => {
+      const avatars = document.getElementById("playerAvatars");
+      avatars.innerHTML = '';
+      const all = s.val() || {};
+      Object.values(all).forEach(p => {
+        const div = document.createElement("div");
+        div.className = "avatar";
+        div.innerHTML = `<img src="https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}" title="${p.name}" />`;
+        avatars.appendChild(div);
+      });
+    });
+
+    db.ref(`game/players/${player.id}/hand`).on("value", s => {
+      const hand = s.val() || [];
+      const handDiv = document.getElementById("hand");
+      handDiv.innerHTML = '';
+      hand.forEach((c, i) => {
+        const img = document.createElement("img");
+        img.className = "card-img";
+        img.src = getCardImage(c);
+        img.onclick = () => discard(i);
+        handDiv.appendChild(img);
+      });
+    });
+
+    db.ref("game/turn").on("value", s => {
+      document.getElementById("turnInfo").innerText = s.val() === player.id ? "Your Turn!" : `Waiting for ${s.val()}`;
+    });
+
+    db.ref("game/deck").on("value", s => {
+      document.getElementById("deckSize").innerText = (s.val() || []).length;
+    });
+
+    db.ref("game/discard").on("value", s => {
+      document.getElementById("topDiscard").innerText = s.val() || "None";
+    });
+
+    db.ref("game/winner").on("value", s => {
+      const w = s.val();
+      if (w) alert(`🎉 ${w.name} wins! Score: ${w.score}`);
+    });
+  }
+
+  function startGame() {
+    const suits = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
+    const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+    let deck = [];
+    for (let i = 0; i < 2; i++) {
+      suits.forEach(suit => ranks.forEach(rank => deck.push(`${rank} of ${suit}`)));
     }
+    deck = deck.sort(() => Math.random() - 0.5);
+    db.ref("game/deck").set(deck);
+    db.ref("game/status").set("started");
+    db.ref("game/discard").set("None");
 
-    function listenGame() {
-      db.ref("deck").on("value", snap => {
-        const deck = snap.val() || [];
-        document.getElementById("deckSize").innerText = deck.length;
+    db.ref("game/players").once("value").then(snap => {
+      const all = snap.val();
+      Object.keys(all).forEach(pid => {
+        const hand = deck.splice(0, 13);
+        db.ref(`game/players/${pid}/hand`).set(hand);
       });
+      db.ref("game/deck").set(deck);
+      db.ref("game/turn").set("player1");
+    });
+  }
 
-      db.ref("discard").on("value", snap => {
-        document.getElementById("topDiscard").innerText = snap.val() || "None";
-      });
-
-      db.ref(`players/${player}/hand`).on("value", snap => {
-        const hand = snap.val() || [];
-        const handEl = document.getElementById("hand");
-        handEl.innerHTML = '';
-        hand.forEach((card, i) => {
-          const div = document.createElement("div");
-          div.className = "card";
-          div.innerText = card;
-          div.onclick = () => discard(i);
-          handEl.appendChild(div);
+  function drawCard() {
+    db.ref("game/turn").once("value").then(t => {
+      if (t.val() !== player.id) return alert("Not your turn!");
+      if (hasDrawn) return alert("Already drawn. Discard to end your turn.");
+      db.ref("game/deck").once("value").then(deckSnap => {
+        const deck = deckSnap.val() || [];
+        const card = deck.pop();
+        db.ref("game/deck").set(deck);
+        db.ref(`game/players/${player.id}/hand`).once("value").then(h => {
+          const hand = h.val() || [];
+          hand.push(card);
+          db.ref(`game/players/${player.id}/hand`).set(hand);
+          hasDrawn = true;
         });
       });
+    });
+  }
 
-      db.ref("turn").on("value", snap => {
-        const turn = snap.val();
-        document.getElementById("turnInfo").innerText = (turn === player)
-          ? "It's your turn!" : `Waiting for ${turn}...`;
-      });
-    }
-
-    function drawCard() {
-      db.ref("turn").once("value").then(snap => {
-        if (snap.val() !== player) return alert("Not your turn!");
-
-        db.ref("deck").once("value").then(deckSnap => {
-          const deck = deckSnap.val() || [];
-          if (!deck.length) return alert("Deck is empty");
-
-          const card = deck.pop();
-          db.ref("deck").set(deck);
-          db.ref(`players/${player}/hand`).once("value").then(handSnap => {
-            const hand = handSnap.val() || [];
-            if (hand.length >= 14) return alert("You must discard before drawing again.");
-            hand.push(card);
-            db.ref(`players/${player}/hand`).set(hand);
-          });
+  function discard(index) {
+    db.ref("game/turn").once("value").then(t => {
+      if (t.val() !== player.id) return alert("Not your turn!");
+      db.ref(`game/players/${player.id}/hand`).once("value").then(h => {
+        const hand = h.val() || [];
+        const card = hand.splice(index, 1)[0];
+        db.ref(`game/players/${player.id}/hand`).set(hand);
+        db.ref("game/discard").set(card);
+        db.ref("game/players").once("value").then(p => {
+          const ids = Object.keys(p.val());
+          const i = ids.indexOf(player.id);
+          const next = ids[(i + 1) % ids.length];
+          db.ref("game/turn").set(next);
+          hasDrawn = false;
         });
       });
-    }
+    });
+  }
 
-    function discard(index) {
-      db.ref("turn").once("value").then(snap => {
-        if (snap.val() !== player) return alert("Not your turn!");
+  function declare() {
+    db.ref(`game/players/${player.id}/hand`).once("value").then(snap => {
+      const hand = snap.val() || [];
+      const valid = isWinningHand(hand);
+      if (valid) {
+        db.ref("game/status").set("ended");
+        db.ref("game/winner").set({ name: player.name, score: 100 });
+      } else {
+        alert("❌ Invalid hand. Must have at least 3 valid melds of 3+ cards.");
+      }
+    });
+  }
 
-        db.ref(`players/${player}/hand`).once("value").then(handSnap => {
-          const hand = handSnap.val() || [];
-          const card = hand.splice(index, 1)[0];
-          db.ref(`players/${player}/hand`).set(hand);
-          db.ref("discard").set(card);
-          // Move to next player
-          db.ref("players").once("value").then(pSnap => {
-            const names = Object.keys(pSnap.val() || {});
-            const idx = names.indexOf(player);
-            const next = names[(idx + 1) % names.length];
-            db.ref("turn").set(next);
-          });
-        });
-      });
-    }
+  function isWinningHand(hand) {
+    let melds = 0;
+    const sorted = [...hand].sort((a, b) => {
+      const [r1,, s1] = a.split(" ");
+      const [r2,, s2] = b.split(" ");
+      return suitMap[s1] === suitMap[s2]
+        ? rankOrder.indexOf(r1) - rankOrder.indexOf(r2)
+        : suitMap[s1].localeCompare(suitMap[s2]);
+    });
 
-    function declareHand() {
-      alert("Declare logic will be added soon! (Meld detection, win condition, etc.)");
+    for (let i = 0; i <= sorted.length - 3; i++) {
+      const [r1,, s1] = sorted[i].split(" ");
+      const [r2,, s2] = sorted[i + 1].split(" ");
+      const [r3,, s3] = sorted[i + 2].split(" ");
+      const idx1 = rankOrder.indexOf(r1);
+      const idx2 = rankOrder.indexOf(r2);
+      const idx3 = rankOrder.indexOf(r3);
+
+      if (s1 === s2 && s2 === s3 && idx2 === idx1 + 1 && idx3 === idx2 + 1) {
+        melds++;
+        i += 2;
+      } else if (r1 === r2 && r2 === r3 && s1 !== s2 && s2 !== s3) {
+        melds++;
+        i += 2;
+      }
     }
-  </script>
+    return melds >= 3;
+  }
+
+  function resetGame() {
+    if (confirm("Reset the game for everyone?")) {
+      db.ref("game").remove();
+      location.reload();
+    }
+  }
+</script>
+
 </body>
 </html>

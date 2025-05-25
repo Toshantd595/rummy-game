@@ -412,7 +412,14 @@ function renderHand(hand) {
     const img = document.createElement("img");
     img.className = "card-img";
     img.src = getCardImage(c);
-    img.onclick = () => toggleSelect(c);
+img.onclick = () => {
+  if (hasDrawn) {
+    const index = hand.indexOf(c);
+    discard(index);
+  } else {
+    toggleSelect(c);
+  }
+};
     if (selectedCards.includes(c)) img.classList.add("meld-selected");
     if (newDrawnCard === c) img.classList.add("new-card"); // Highlight it
     div.appendChild(img);
@@ -428,6 +435,7 @@ function discard(index) {
       let hand = hSnap.val() || [];
       const card = hand.splice(index, 1)[0];
       db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
+      selectedCards = [];
       db.ref(`games/${gameCode}/discard`).set(card);
 
       db.ref(`games/${gameCode}/players`).once("value").then(pSnap => {

@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rummy Multiplayer</title>
-
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; margin: 0; padding: 0; }
     h1 { color: #facc15; margin-top: 20px; }
@@ -20,8 +18,9 @@
     .section { margin: 20px; }
     .table-layout { display: flex; flex-direction: column; align-items: center; }
     .player-top, .player-bottom { margin: 10px 0; }
-    .chat-box { background: #333; padding: 10px; border-radius: 5px; margin-top: 10px; max-width: 400px; margin-left: auto; margin-right: auto; }
+    .chat-box { background: #333; padding: 10px; border-radius: 5px; margin-top: 10px; max-width: 400px; margin-left: auto; margin-right: auto; display: none; }
     .chat-bubble { background: #fef08a; color: #000; padding: 8px 12px; border-radius: 10px; margin: 5px; display: inline-block; }
+    #controls { display: none; }
   </style>
 </head>
 <body>
@@ -36,10 +35,10 @@
     <div>
       <input id="playerName" placeholder="Your name">
       <select id="avatarSelect">
-        <option value="1">👩 Avatar 1</option>
-        <option value="2">👨 Avatar 2</option>
-        <option value="3">🤵 Avatar 3</option>
-        <option value="4">🤮 Avatar 4</option>
+        <option value="toshant">Avatar 1</option>
+        <option value="aastha">Avatar 2</option>
+        <option value="jack">Avatar 3</option>
+        <option value="jill">Avatar 4</option>
       </select>
     </div>
     <div id="gameCodeDisplay"></div>
@@ -48,12 +47,11 @@
   <div id="game" style="display:none">
     <div class="section table-layout">
       <div class="player-top" id="opponentArea"></div>
-      <div class="section">
+      <div class="section" id="controls">
         <div id="turnInfo"></div>
         <button onclick="drawCard()">Draw Card</button>
         <button onclick="sortHand()">Sort Hand</button>
         <button onclick="meld()">Meld / Lay Off</button>
-        <button onclick="startGame()" id="startBtn" style="display:none">Start Game</button>
       </div>
       <div class="section">
         Deck Size: <span id="deckSize">0</span> | Top Discard: <span id="topDiscard">None</span>
@@ -62,7 +60,8 @@
       <div class="cards" id="hand"></div>
       <div class="player-bottom" id="yourAvatar"></div>
     </div>
-    <div class="chat-box">
+    <button id="startBtn" onclick="startGame()" style="display:none">Start Game</button>
+    <div class="chat-box" id="chatBox">
       <input type="text" id="chatInput" placeholder="Say something..." onkeydown="if(event.key==='Enter') sendChat()">
       <button onclick="sendChat()">Speak</button>
       <div id="chatArea"></div>
@@ -118,6 +117,14 @@
 
     function listen() {
       const g = `games/${gameCode}`;
+      db.ref(`${g}/status`).on("value", s => {
+        const status = s.val();
+        if (status === "started") {
+          document.getElementById("controls").style.display = "block";
+          document.getElementById("chatBox").style.display = "block";
+          document.getElementById("startBtn").style.display = "none";
+        }
+      });
       db.ref(`${g}/players`).on("value", snap => {
         const players = snap.val() || {};
         const others = Object.entries(players).filter(([id]) => id !== playerId);
@@ -125,6 +132,13 @@
         opponentDiv.innerHTML = others.map(([_, p]) => `<div><div>${p.name}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}'/><div>${"🂠 ".repeat(13)}</div></div>`).join("");
         const yourAvatar = document.getElementById("yourAvatar");
         yourAvatar.innerHTML = `<div>${playerName}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${avatar}'/>`;
+      });
+      db.ref(`${g}/turn`).on("value", s => {
+        const turn = s.val();
+        db.ref(`${g}/players/${turn}`).once("value").then(p => {
+          const name = p.val() ? p.val().name : "someone";
+          document.getElementById("turnInfo").innerText = turn === playerId ? "Your Turn!" : `${name}'s Turn`;
+        });
       });
       db.ref(`${g}/players/${playerId}/hand`).on("value", s => {
         const hand = s.val() || [];
@@ -137,11 +151,6 @@
           img.onclick = () => discard(i);
           div.appendChild(img);
         });
-      });
-      db.ref(`${g}/turn`).on("value", s => {
-        const turn = s.val();
-        document.getElementById("turnInfo").innerText = turn ? (turn === playerId ? "Your Turn!" : `Waiting for ${turn}`) : "Waiting for players to join...";
-        if (turn && playerId === "player1") document.getElementById("startBtn").style.display = "none";
       });
       db.ref(`${g}/deck`).on("value", s => document.getElementById("deckSize").innerText = (s.val() || []).length);
       db.ref(`${g}/discard`).on("value", s => document.getElementById("topDiscard").innerText = s.val() || "None");
@@ -157,15 +166,18 @@
     function startGame() {
       const suits = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
       const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-      let deck = [];
-      for (let i = 0; i < 2; i++) suits.forEach(s => ranks.forEach(r => deck.push(`${r} of ${s}`)));
-      deck = deck.sort(() => Math.random() - 0.5);
       const g = `games/${gameCode}`;
-      db.ref(`${g}/deck`).set(deck);
-      db.ref(`${g}/status`).set("started");
-      db.ref(`${g}/discard`).set("None");
       db.ref(`${g}/players`).once("value").then(snap => {
         const players = snap.val();
+        let deck = [];
+        for (let i = 0; i < 1; i++) suits.forEach(s => ranks.forEach(r => deck.push(`${r} of ${s}`)));
+        if (Object.keys(players).length * 13 > 52) {
+          for (let i = 0; i < 2; i++) suits.forEach(s => ranks.forEach(r => deck.push(`${r} of ${s}`)));
+        }
+        deck = deck.sort(() => Math.random() - 0.5);
+        db.ref(`${g}/deck`).set(deck);
+        db.ref(`${g}/status`).set("started");
+        db.ref(`${g}/discard`).set("None");
         Object.keys(players).forEach(pid => {
           const hand = deck.splice(0, 13);
           db.ref(`${g}/players/${pid}/hand`).set(hand);

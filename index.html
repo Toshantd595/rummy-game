@@ -294,15 +294,15 @@ function joinGame() {
 
 function listen() {
   const g = `games/${gameCode}`;
-  db.ref(`${g}/status`).on("value", s => {
-    const status = s.val();
-    document.getElementById("controls").style.display = status === "started" ? "flex" : "none";
-    document.getElementById("chatBox").style.display = status === "started" ? "block" : "none";
-    document.getElementById("turnInfo").style.display = status === "started" ? "block" : "none";
-    if (status === "started") {
-      document.getElementById("startBtn").style.display = "none";
-    }
-  });
+  db.ref(`games/${gameCode}/discard`).on("value", snap => {
+  const discard = snap.val();
+  const topImg = document.getElementById("topDiscardImg");
+  if (discard && discard !== "None") {
+    topImg.src = getCardImage(discard);
+  } else {
+    topImg.src = "https://deckofcardsapi.com/static/img/back.png"; // fallback
+  }
+});
 
 db.ref(`games/${gameCode}/players`).on("value", snap => {
   const players = snap.val() || {};
@@ -434,11 +434,13 @@ function discard(index) {
         const currentIndex = allIds.indexOf(playerId);
         const nextPlayer = allIds[(currentIndex + 1) % allIds.length];
         db.ref(`games/${gameCode}/turn`).set(nextPlayer);
-        newDrawnIndex = null;
+        hasDrawn = false;         // ✅ fix
+        newDrawnCard = null;      // ✅ remove highlight
       });
     });
   });
 }
+
 
 function sortHand() {
   const suitOrder = { Spades: 1, Hearts: 2, Diamonds: 3, Clubs: 4 };
@@ -488,17 +490,9 @@ function meld() {
   }
 
   if (isSet || isRun) {
-    declareVictory(playerName); // ✅ Triggers win logic
-    showMeld(selectedCards);    // ✅ Displays the melded cards below
-    db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(h => {
-      let hand = h.val();
-      selectedCards.forEach(card => {
-        const i = hand.indexOf(card);
-        if (i !== -1) hand.splice(i, 1);
-      });
-      db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
-      selectedCards = [];
-    });
+    showMeld(selectedCards);  // ✅ only show, don't declare yet
+    alert("✅ Meld looks valid! You can now Declare.");
+    selectedCards = [];
   } else {
     alert("❌ Invalid meld. Must be same rank or same suit in sequence.");
   }
@@ -601,6 +595,13 @@ function declareVictory(name) {
   alert(`🎉 ${name} wins the game!`);
   db.ref(`games/${gameCode}/status`).set("ended");
 }
+  
+db.ref(`games/${gameCode}/players/${playerId}`).once("value").then(p => {
+  if (playerId === "player1") {
+    document.getElementById("resetBtn").style.display = "inline-block";
+  }
+});
+
 
 // 📈 Save win to leaderboard in Firebase
 function saveWin(name) {

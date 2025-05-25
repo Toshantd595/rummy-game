@@ -1,29 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Multiplayer Rummy Game</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rummy Multiplayer</title>
+
+  <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+
+  <!-- Styling -->
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #005f73;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 30px;
+      font-size: 36px;
+      color: #ffd166;
+    }
+
+    .login-section, .game-section {
+      margin-top: 20px;
+    }
+
+    input {
+      padding: 10px;
+      width: 200px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-left: 10px;
+      background-color: #ffd166;
+      border: none;
+      color: #000;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .cards {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    .card {
+      background-color: white;
+      color: black;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 5px;
+      width: 70px;
+      height: 100px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .game-info {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Rummy Multiplayer</h1>
-  <div>
-    <label>Your Name: <input id="playerName" /></label>
-    <button onclick="joinGame()">Join Game</button>
-  </div>
-  <hr>
-  <div id="gameArea" style="display:none;">
-    <h2 id="turnInfo"></h2>
-    <p>Your Hand:</p>
-    <ul id="hand"></ul>
-    <button onclick="drawCard()">Draw Card</button>
-    <p>Click on a card to discard it.</p>
-    <p>Deck Size: <span id="deckSize"></span></p>
-    <p>Top Discard: <span id="topDiscard"></span></p>
+  <div class="container">
+    <h1>Rummy Multiplayer</h1>
+
+    <div class="login-section" id="loginSection">
+      <input type="text" id="playerName" placeholder="Enter your name" />
+      <button onclick="joinGame()">Join Game</button>
+    </div>
+
+    <div class="game-section" id="gameSection" style="display:none;">
+      <h2 id="turnInfo"></h2>
+      <div class="game-info">
+        <p>Deck Size: <span id="deckSize">0</span></p>
+        <p>Top Discard: <span id="topDiscard">None</span></p>
+      </div>
+
+      <button onclick="drawCard()">Draw Card</button>
+      <button onclick="declareHand()">Declare</button>
+
+      <h3>Your Hand:</h3>
+      <div class="cards" id="hand"></div>
+    </div>
   </div>
 
   <script>
-    // Paste your Firebase config here ok ↓↓↓
+    // 🧠 Paste your Firebase config here:
 const firebaseConfig = {
   apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
   authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
@@ -41,9 +130,15 @@ const firebaseConfig = {
 
     function joinGame() {
       player = document.getElementById("playerName").value.trim();
-      if (!player) return alert("Enter a name!");
+      if (!player) return alert("Enter your name!");
       db.ref(`players/${player}`).set({ hand: [] });
-      document.getElementById("gameArea").style.display = "block";
+      db.ref("turn").once("value").then(snap => {
+        if (!snap.exists()) {
+          db.ref("turn").set(player);
+        }
+      });
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("gameSection").style.display = "block";
       listenGame();
     }
 
@@ -59,16 +154,21 @@ const firebaseConfig = {
 
       db.ref(`players/${player}/hand`).on("value", snap => {
         const hand = snap.val() || [];
-        let html = '';
+        const handEl = document.getElementById("hand");
+        handEl.innerHTML = '';
         hand.forEach((card, i) => {
-          html += `<li onclick="discard(${i})">${card}</li>`;
+          const div = document.createElement("div");
+          div.className = "card";
+          div.innerText = card;
+          div.onclick = () => discard(i);
+          handEl.appendChild(div);
         });
-        document.getElementById("hand").innerHTML = html;
       });
 
       db.ref("turn").on("value", snap => {
         const turn = snap.val();
-        document.getElementById("turnInfo").innerText = (turn === player) ? "It's your turn!" : `Waiting for ${turn}...`;
+        document.getElementById("turnInfo").innerText = (turn === player)
+          ? "It's your turn!" : `Waiting for ${turn}...`;
       });
     }
 
@@ -84,6 +184,7 @@ const firebaseConfig = {
           db.ref("deck").set(deck);
           db.ref(`players/${player}/hand`).once("value").then(handSnap => {
             const hand = handSnap.val() || [];
+            if (hand.length >= 14) return alert("You must discard before drawing again.");
             hand.push(card);
             db.ref(`players/${player}/hand`).set(hand);
           });
@@ -100,7 +201,7 @@ const firebaseConfig = {
           const card = hand.splice(index, 1)[0];
           db.ref(`players/${player}/hand`).set(hand);
           db.ref("discard").set(card);
-          // Pass turn
+          // Move to next player
           db.ref("players").once("value").then(pSnap => {
             const names = Object.keys(pSnap.val() || {});
             const idx = names.indexOf(player);
@@ -109,6 +210,10 @@ const firebaseConfig = {
           });
         });
       });
+    }
+
+    function declareHand() {
+      alert("Declare logic will be added soon! (Meld detection, win condition, etc.)");
     }
   </script>
 </body>

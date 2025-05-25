@@ -6,146 +6,151 @@
   <title>Rummy Royale</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #1a1a2e, #16213e);
-      color: #fff;
-      overflow-x: hidden;
-    }
-    h1 {
-      text-align: center;
-      padding: 15px;
-      color: #facc15;
-      text-shadow: 1px 1px #000;
-    }
-    input, select, button, textarea {
-      padding: 10px;
-      margin: 5px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: none;
-    }
-    button {
-      background-color: #facc15;
-      color: #000;
-      cursor: pointer;
-    }
-    .table {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .cards {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin: 10px;
-      transition: all 0.3s ease-in-out;
-    }
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #1a1a2e;
+    color: white;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    color: #facc15;
+    text-align: center;
+    padding: 10px;
+  }
+
+  input, select, button {
+    padding: 10px;
+    margin: 5px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: none;
+  }
+
+  button {
+    background: #facc15;
+    color: black;
+    cursor: pointer;
+  }
+
+  .table {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px;
+  }
+
+  .opponent-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .opponent-cards {
+    display: flex;
+    gap: 6px;
+  }
+
+  .card-back {
+    width: 45px;
+    height: 65px;
+    background: url('https://deckofcardsapi.com/static/img/back.png') center/cover no-repeat;
+    border-radius: 5px;
+  }
+
+  .card-img {
+    width: 60px;
+    height: 90px;
+    margin: 2px;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .card-img:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px #facc15;
+  }
+
+  .cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 10px 0;
+    transition: all 0.4s ease-in-out;
+  }
+
+  .new-card {
+    border: 2px solid #facc15;
+    border-radius: 4px;
+    transform: scale(1.1);
+  }
+
+  .melded-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 8px;
+    background: #263159;
+    border-radius: 6px;
+  }
+
+  .controls {
+    margin: 10px auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    display: none;
+  }
+
+  .chat-bubble {
+    background: #fef08a;
+    color: #000;
+    padding: 8px 12px;
+    border-radius: 10px;
+    margin: 5px auto;
+    display: inline-block;
+    animation: fadeout 3s forwards;
+  }
+
+  @keyframes fadeout {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+  }
+
+  #fireworks {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 9999;
+    pointer-events: none;
+    display: none;
+  }
+
+  @media (max-width: 600px) {
     .card-img {
-      width: 60px;
-      height: 90px;
-      margin: 3px;
-      transition: transform 0.2s;
-      cursor: pointer;
-      border-radius: 6px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      width: 50px;
+      height: 75px;
     }
-    .card-img:hover {
-      transform: scale(1.1);
-    }
-    .info-bar {
-      display: none;
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 8px 16px;
-      border-radius: 10px;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    .chat-box {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.6);
-      padding: 10px;
-      border-radius: 10px;
-      display: none;
-      max-width: 200px;
-    }
-    .chat-bubble {
-      position: absolute;
-      top: 5%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #fef08a;
-      color: #000;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-weight: bold;
-      animation: fadeout 3s forwards;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    }
-    @keyframes fadeout {
-      0% {opacity: 1;}
-      80% {opacity: 1;}
-      100% {opacity: 0;}
-    }
-    .quick-chat {
-      margin-top: 5px;
-      display: flex;
-      flex-direction: column;
-    }
-    .quick-chat button {
-      background: #444;
-      color: #facc15;
-      margin: 3px 0;
-    }
-    .avatar-image {
-      width: 60px;
+    .card-back {
+      width: 40px;
       height: 60px;
-      border-radius: 10px;
-      margin-top: 5px;
     }
-    #controls {
-      display: none;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
+    button, input, select {
+      font-size: 14px;
+      padding: 8px;
     }
-    #meldArea {
-      display: none;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 10px;
-    }
-    .meld-selected {
-      border: 3px solid #00ffcc;
-      transform: scale(1.1);
-    }
-    @media (max-width: 600px) {
-      .card-img {
-        width: 45px;
-        height: 70px;
-      }
-      .avatar-image {
-        width: 50px;
-        height: 50px;
-      }
-    }
-#fireworks {
-  z-index: 9999;
-}
+  }
+</style>
 
-#royalPanel label {
-  font-size: 16px;
-  margin: 10px;
-  color: #fff;
-}
 
-    
-  </style>
 </head>
 <body>
 <h1>Rummy Royale</h1>
@@ -170,31 +175,55 @@
 
 <div id="game" style="display:none">
   <div class="table">
-    <div id="opponentArea"></div>
-    <div id="turnInfo" class="info-bar">Waiting for players...</div>
-    <div id="controls">
-      <button onclick="drawCard()">Draw</button>
+
+    <!-- 👤 Opponent Area -->
+    <div class="opponent-area" id="opponentArea">
+      <div id="opponentName" style="margin-bottom: 5px; font-weight: bold;"></div>
+      <div class="opponent-cards" id="opponentCards"></div>
+    </div>
+
+    <!-- 🔄 Deck + Discard -->
+    <div style="display:flex; justify-content:center; align-items:center; gap:20px; margin: 10px 0;">
+      <img src="https://deckofcardsapi.com/static/img/back.png" width="60" height="90" id="deckPlaceholder">
+      <img src="" id="topDiscardImg" width="60" height="90" style="border-radius:5px;">
+    </div>
+
+    <!-- 📢 Turn Info -->
+    <div class="info-bar" id="turnInfo">Waiting...</div>
+
+    <!-- 🕹️ Controls -->
+    <div class="controls" id="controls">
+      <button onclick="drawCard()">Draw Card</button>
       <button onclick="sortHand()">Sort Hand</button>
       <button onclick="meld()">Meld / Lay Off</button>
       <button onclick="resetGame()" id="resetBtn" style="display:none">Reset Game</button>
     </div>
-    <div id="handTitle"><strong>Your Hand</strong></div>
-    <div class="cards" id="hand"></div>
-    <div class="cards" id="meldArea"></div>
-    <div id="yourAvatar" class="your-area"></div>
-    <button id="startBtn" onclick="startGame()" style="display:none">Start Game</button>
-  </div>
 
-  <div class="chat-box" id="chatBox">
-    <input type="text" id="chatInput" placeholder="Say something..." onkeydown="if(event.key==='Enter') sendChat()">
-    <button onclick="sendChat()">Send</button>
-    <div class="quick-chat">
-      <button onclick="sendQuick('Hi Queen of Cards 👑')">Hi Queen of Cards 👑</button>
-      <button onclick="sendQuick('Nice move, love 😉')">Nice move, love 😉</button>
-      <button onclick="sendQuick('Feeling lucky?')">Feeling lucky?</button>
-      <button onclick="sendQuick('Don’t bluff me 😏')">Don’t bluff me 😏</button>
-      <button onclick="sendQuick('You’re going down 🃏')">You’re going down 🃏</button>
+    <!-- 🧩 Melded Sets Area -->
+    <div id="meldedArea" class="melded-cards" style="display:none;"></div>
+
+    <!-- 🤲 Player Hand -->
+    <h3 style="margin:10px;">Your Hand</h3>
+    <div class="cards" id="hand"></div>
+    <div class="your-area" id="yourAvatar"></div>
+
+    <!-- 🔘 Start Game (Player 1 only) -->
+    <button id="startBtn" onclick="startGame()" style="display:none; margin-top:10px">Start Game</button>
+
+    <!-- 💬 Chat Box -->
+    <div class="chat-box" id="chatBox">
+      <input type="text" id="chatInput" placeholder="Say something..." onkeydown="if(event.key==='Enter') sendChat()">
+      <button onclick="sendChat()">Speak</button>
+      <div class="quick-chat">
+        <button onclick="sendQuick('Hi queen of cards 👑')">Hi queen of cards 👑</button>
+        <button onclick="sendQuick('Nice move, love 😉')">Nice move, love 😉</button>
+        <button onclick="sendQuick('Feeling lucky?')">Feeling lucky?</button>
+        <button onclick="sendQuick('Don’t bluff me 😏')">Don’t bluff me 😏</button>
+        <button onclick="sendQuick('You’re going down 🃏')">You’re going down 🃏</button>
+      </div>
+      <div id="chatArea"></div>
     </div>
+
   </div>
 </div>
 
@@ -275,14 +304,23 @@ function listen() {
     }
   });
 
-  db.ref(`${g}/players`).on("value", snap => {
-    const players = snap.val() || {};
-    const others = Object.entries(players).filter(([id]) => id !== playerId);
-    document.getElementById("opponentArea").innerHTML = others.map(([_, p]) =>
-      `<div><div>${p.name}</div><img class='avatar-image' src='https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}'/><div>${"🂠 ".repeat(13)}</div></div>`
-    ).join("");
-    document.getElementById("yourAvatar").innerHTML = `<div>${playerName}</div><img class='avatar-image' src='https://api.dicebear.com/7.x/thumbs/svg?seed=${avatar}'/>`;
-  });
+db.ref(`games/${gameCode}/players`).on("value", snap => {
+  const players = snap.val() || {};
+  const opponent = Object.entries(players).find(([id, _]) => id !== playerId);
+  const opponentCards = document.getElementById("opponentCards");
+  const opponentName = document.getElementById("opponentName");
+  opponentCards.innerHTML = '';
+  if (opponent) {
+    const [id, data] = opponent;
+    opponentName.textContent = data.name;
+    for (let i = 0; i < (data.hand?.length || 0); i++) {
+      const div = document.createElement("div");
+      div.className = "card-back";
+      opponentCards.appendChild(div);
+    }
+  }
+});
+
 
   db.ref(`${g}/turn`).on("value", s => {
     const turn = s.val();
@@ -307,27 +345,6 @@ function listen() {
   });
 }
 
-function renderHand(hand) {
-  const grouped = {};
-  hand.forEach(c => {
-    const suit = c.split(" ")[2];
-    if (!grouped[suit]) grouped[suit] = [];
-    grouped[suit].push(c);
-  });
-  for (let s in grouped) grouped[s].sort();
-  const sorted = Object.values(grouped).flat();
-
-  const div = document.getElementById("hand");
-  div.innerHTML = "";
-  sorted.forEach((c, i) => {
-    const img = document.createElement("img");
-    img.className = "card-img";
-    img.src = getCardImage(c);
-    img.onclick = () => toggleSelect(c, i);
-    if (selectedCards.includes(c)) img.classList.add("meld-selected");
-    div.appendChild(img);
-  });
-}
 
 function toggleSelect(card, index) {
   if (selectedCards.includes(card)) {
@@ -362,47 +379,88 @@ function startGame() {
   });
 }
 
+let newDrawnIndex = null;
+
+let newDrawnCard = null;
+
 function drawCard() {
-  const g = `games/${gameCode}`;
-  db.ref(`${g}/turn`).once("value").then(t => {
-    if (t.val() !== playerId) return alert("Not your turn!");
-    if (hasDrawn) return alert("Already drew a card.");
-    db.ref(`${g}/deck`).once("value").then(s => {
-      const deck = s.val();
+  db.ref(`games/${gameCode}/turn`).once("value").then(turnSnap => {
+    if (turnSnap.val() !== playerId) return alert("Not your turn!");
+
+    db.ref(`games/${gameCode}/deck`).once("value").then(deckSnap => {
+      let deck = deckSnap.val();
+      if (!deck || deck.length === 0) return alert("Deck is empty");
+
       const card = deck.pop();
-      db.ref(`${g}/deck`).set(deck);
-      db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
-        const hand = h.val() || [];
+      newDrawnCard = card; // Store the card to highlight
+      db.ref(`games/${gameCode}/deck`).set(deck);
+
+      db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(handSnap => {
+        let hand = handSnap.val() || [];
         hand.push(card);
-        db.ref(`${g}/players/${playerId}/hand`).set(hand);
-        hasDrawn = true;
+        db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
       });
     });
   });
 }
 
+function renderHand(hand) {
+  const div = document.getElementById("hand");
+  div.innerHTML = "";
+  hand.forEach(c => {
+    const img = document.createElement("img");
+    img.className = "card-img";
+    img.src = getCardImage(c);
+    img.onclick = () => toggleSelect(c);
+    if (selectedCards.includes(c)) img.classList.add("meld-selected");
+    if (newDrawnCard === c) img.classList.add("new-card"); // Highlight it
+    div.appendChild(img);
+  });
+}
+
+  
 function discard(index) {
-  if (!hasDrawn) return alert("Draw a card first!");
-  const g = `games/${gameCode}`;
-  db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
-    const hand = h.val();
-    const card = hand.splice(index, 1)[0];
-    db.ref(`${g}/players/${playerId}/hand`).set(hand);
-    db.ref(`${g}/discard`).set(card);
-    db.ref(`${g}/players`).once("value").then(snap => {
-      const ids = Object.keys(snap.val());
-      const i = ids.indexOf(playerId);
-      const next = ids[(i + 1) % ids.length];
-      db.ref(`${g}/turn`).set(next);
-      hasDrawn = false;
-      selectedCards = [];
+  db.ref(`games/${gameCode}/turn`).once("value").then(tSnap => {
+    if (tSnap.val() !== playerId) return;
+
+    db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(hSnap => {
+      let hand = hSnap.val() || [];
+      const card = hand.splice(index, 1)[0];
+      db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
+      db.ref(`games/${gameCode}/discard`).set(card);
+
+      db.ref(`games/${gameCode}/players`).once("value").then(pSnap => {
+        const allIds = Object.keys(pSnap.val());
+        const currentIndex = allIds.indexOf(playerId);
+        const nextPlayer = allIds[(currentIndex + 1) % allIds.length];
+        db.ref(`games/${gameCode}/turn`).set(nextPlayer);
+        newDrawnIndex = null;
+      });
     });
+  });
+}
+
+function sortHand() {
+  const suitOrder = { Spades: 1, Hearts: 2, Diamonds: 3, Clubs: 4 };
+  const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(snap => {
+    const hand = snap.val() || [];
+
+    hand.sort((a, b) => {
+      const [ra,, sa] = a.split(" ");
+      const [rb,, sb] = b.split(" ");
+      if (suitOrder[sa] !== suitOrder[sb]) return suitOrder[sa] - suitOrder[sb];
+      return rankOrder.indexOf(ra) - rankOrder.indexOf(rb);
+    });
+
+    db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
   });
 }
 
 
 
-  function meld() {
+function meld() {
   if (selectedCards.length < 3) return alert("Select at least 3 cards to form a meld.");
   const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
@@ -430,7 +488,8 @@ function discard(index) {
   }
 
   if (isSet || isRun) {
-    alert("✅ Meld Successful!");
+    declareVictory(playerName); // ✅ Triggers win logic
+    showMeld(selectedCards);    // ✅ Displays the melded cards below
     db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(h => {
       let hand = h.val();
       selectedCards.forEach(card => {
@@ -445,6 +504,20 @@ function discard(index) {
   }
 }
 
+
+function showMeld(cards) {
+  const area = document.getElementById("meldedArea");
+  area.innerHTML = '';
+  cards.forEach(c => {
+    const img = document.createElement("img");
+    img.src = getCardImage(c);
+    img.className = "card-img";
+    area.appendChild(img);
+  });
+  area.style.display = 'flex';
+}
+
+  
 function resetGame() {
   if (confirm("Reset game for all players?")) {
     db.ref(`games/${gameCode}`).remove();
@@ -592,17 +665,15 @@ function discardAuto() {
   });
 }
 
-// 🧠 Inject declareVictory into meld() on valid success
-// Replace inside your meld() function:
-if (isSet || isRun) {
-  declareVictory(playerName);
-  selectedCards = [];
-}
+
 
 
 
   
 </script>
+<!-- Fireworks Canvas -->
+<canvas id="fireworks" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; display:none;"></canvas>
+  
 </body>
 </html>
 
@@ -610,6 +681,4 @@ if (isSet || isRun) {
 
 
 
-<!-- Fireworks Canvas -->
-<canvas id="fireworks" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; display:none;"></canvas>
 

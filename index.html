@@ -63,7 +63,7 @@
       padding: 8px 12px;
       border-radius: 10px;
       margin: 10px auto;
-      display: inline-block;
+      display: none;
     }
     .chat-box {
       background: #333;
@@ -102,10 +102,20 @@
       color: #facc15;
       margin: 3px;
     }
+    .avatar-image {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      margin-top: 5px;
+    }
     @media (max-width: 600px) {
       .card-img {
         width: 45px;
         height: 65px;
+      }
+      .avatar-image {
+        width: 60px;
+        height: 60px;
       }
       button, input, select, textarea {
         font-size: 14px;
@@ -144,9 +154,6 @@
       <button onclick="meld()">Meld / Lay Off</button>
       <button onclick="resetGame()" id="resetBtn" style="display:none">Reset Game</button>
     </div>
-    <div class="info-bar">
-      Deck Size: <span id="deckSize">0</span> | Top Discard: <span id="topDiscard">None</span>
-    </div>
     <div id="handTitle">Your Hand</div>
     <div class="cards" id="hand"></div>
     <div class="your-area" id="yourAvatar"></div>
@@ -167,7 +174,7 @@
 </div>
 
 <script>
-// 🔥 Firebase Config
+// ✅ Firebase config
 const config = {
   apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
   authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
@@ -213,9 +220,12 @@ function joinGame() {
       const status = statusSnap.val();
       document.getElementById("controls").style.display = status === "started" ? "flex" : "none";
       document.getElementById("chatBox").style.display = status === "started" ? "block" : "none";
+      document.getElementById("turnInfo").style.display = status === "started" ? "block" : "none";
       document.getElementById("lobby").style.display = "none";
       document.getElementById("game").style.display = "block";
-      if (playerId === "player1") document.getElementById("startBtn").style.display = "inline-block";
+      if (playerId === "player1" && status !== "started") {
+        document.getElementById("startBtn").style.display = "inline-block";
+      }
       listen();
     });
   });
@@ -227,22 +237,27 @@ function listen() {
     const status = s.val();
     document.getElementById("controls").style.display = status === "started" ? "flex" : "none";
     document.getElementById("chatBox").style.display = status === "started" ? "block" : "none";
-    document.getElementById("startBtn").style.display = "none";
-    if (playerId === "player1") document.getElementById("resetBtn").style.display = "inline-block";
+    document.getElementById("turnInfo").style.display = status === "started" ? "block" : "none";
+    if (playerId === "player1") {
+      document.getElementById("resetBtn").style.display = "inline-block";
+    }
   });
+
   db.ref(`${g}/players`).on("value", snap => {
     const players = snap.val() || {};
     const others = Object.entries(players).filter(([id]) => id !== playerId);
-    document.getElementById("opponentArea").innerHTML = others.map(([_, p]) => `<div><div>${p.name}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}'/><div>${"🂠 ".repeat(13)}</div></div>`).join("");
-    document.getElementById("yourAvatar").innerHTML = `<div>${playerName}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${avatar}'/>`;
+    document.getElementById("opponentArea").innerHTML = others.map(([_, p]) => `<div><div>${p.name}</div><img class='avatar-image' src='https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}'/><div>${"🂠 ".repeat(13)}</div></div>`).join("");
+    document.getElementById("yourAvatar").innerHTML = `<div>${playerName}</div><img class='avatar-image' src='https://api.dicebear.com/7.x/thumbs/svg?seed=${avatar}'/>`;
   });
+
   db.ref(`${g}/turn`).on("value", s => {
     const turn = s.val();
     db.ref(`${g}/players/${turn}`).once("value").then(p => {
-      const name = p.val() ? p.val().name : "someone";
+      const name = p.val() ? p.val().name : "";
       document.getElementById("turnInfo").innerText = turn === playerId ? "Your Turn!" : `${name}'s Turn`;
     });
   });
+
   db.ref(`${g}/players/${playerId}/hand`).on("value", s => {
     const hand = s.val() || [];
     const div = document.getElementById("hand");
@@ -255,8 +270,7 @@ function listen() {
       div.appendChild(img);
     });
   });
-  db.ref(`${g}/deck`).on("value", s => document.getElementById("deckSize").innerText = (s.val() || []).length);
-  db.ref(`${g}/discard`).on("value", s => document.getElementById("topDiscard").innerText = s.val() || "None");
+
   db.ref(`${g}/chat`).on("child_added", snap => {
     const msg = snap.val();
     const bubble = document.createElement("div");

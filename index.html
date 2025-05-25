@@ -7,26 +7,25 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; margin: 0; padding: 0; }
-    h1 { color: #facc15; margin-top: 20px; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; margin: 0; padding: 0; }
+    h1 { color: #facc15; text-align: center; padding: 10px; }
     input, select, button, textarea { padding: 10px; margin: 5px; font-size: 16px; border-radius: 5px; border: none; }
     button { background: #facc15; color: black; cursor: pointer; }
-    .card-img { width: 70px; height: 100px; margin: 5px; cursor: pointer; transition: transform 0.2s; }
+    .card-img { width: 60px; height: 90px; margin: 2px; cursor: pointer; transition: transform 0.2s; }
     .card-img:hover { transform: scale(1.1); }
-    .cards, .avatars { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
-    .avatar img { width: 50px; height: 50px; border-radius: 50%; }
-    .section { margin: 20px; }
-    .table-layout { display: flex; flex-direction: column; align-items: center; }
-    .player-top, .player-bottom { margin: 10px 0; }
-    .chat-box { background: #333; padding: 10px; border-radius: 5px; margin-top: 10px; max-width: 400px; margin-left: auto; margin-right: auto; display: none; }
-    .chat-bubble { background: #fef08a; color: #000; padding: 8px 12px; border-radius: 10px; margin: 5px; display: inline-block; }
-    #controls { display: none; }
+    .cards { display: flex; flex-wrap: wrap; justify-content: center; margin: 10px 0; }
+    .table { display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    .opponent-area, .your-area { text-align: center; }
+    .info-bar { background: #facc15; color: #000; padding: 8px 12px; border-radius: 10px; margin: 10px auto; display: inline-block; }
+    .chat-box { background: #333; padding: 10px; border-radius: 5px; margin: 10px auto; width: 90%; max-width: 500px; display: none; text-align: center; }
+    .chat-bubble { background: #fef08a; color: #000; padding: 8px 12px; border-radius: 10px; margin: 5px auto; display: inline-block; }
+    .controls { display: none; margin: 10px auto; }
+    #handTitle { font-weight: bold; margin-top: 10px; }
   </style>
 </head>
 <body>
   <h1>Rummy Multiplayer</h1>
-
-  <div id="lobby">
+  <div id="lobby" style="text-align:center">
     <div>
       <button onclick="createGame()">Create Game</button>
       <input type="text" id="gameCodeInput" placeholder="Enter Game Code" maxlength="6">
@@ -45,209 +44,212 @@
   </div>
 
   <div id="game" style="display:none">
-    <div class="section table-layout">
-      <div class="player-top" id="opponentArea"></div>
-      <div class="section" id="controls">
-        <div id="turnInfo"></div>
+    <div class="table">
+      <div class="opponent-area" id="opponentArea"></div>
+      <div class="info-bar" id="turnInfo"></div>
+      <div class="controls" id="controls">
         <button onclick="drawCard()">Draw Card</button>
         <button onclick="sortHand()">Sort Hand</button>
         <button onclick="meld()">Meld / Lay Off</button>
       </div>
-      <div class="section">
+      <div class="info-bar">
         Deck Size: <span id="deckSize">0</span> | Top Discard: <span id="topDiscard">None</span>
       </div>
-      <h3>Your Hand</h3>
+      <div id="handTitle">Your Hand</div>
       <div class="cards" id="hand"></div>
-      <div class="player-bottom" id="yourAvatar"></div>
-    </div>
-    <button id="startBtn" onclick="startGame()" style="display:none">Start Game</button>
-    <div class="chat-box" id="chatBox">
-      <input type="text" id="chatInput" placeholder="Say something..." onkeydown="if(event.key==='Enter') sendChat()">
-      <button onclick="sendChat()">Speak</button>
-      <div id="chatArea"></div>
+      <div class="your-area" id="yourAvatar"></div>
+      <button id="startBtn" onclick="startGame()" style="display:none; margin-top:10px">Start Game</button>
+      <div class="chat-box" id="chatBox">
+        <input type="text" id="chatInput" placeholder="Say something..." onkeydown="if(event.key==='Enter') sendChat()">
+        <button onclick="sendChat()">Speak</button>
+        <div id="chatArea"></div>
+      </div>
     </div>
   </div>
 
-  <script>
-    const config = {
-      apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
-      authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
-      databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "rummy-multiplayer-fe391",
-      storageBucket: "rummy-multiplayer-fe391.appspot.com",
-      messagingSenderId: "717212591323",
-      appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
-    };
-    firebase.initializeApp(config);
-    const db = firebase.database();
+<script>
+  // Firebase config
+  const config = {
+    apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
+    authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
+    databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "rummy-multiplayer-fe391",
+    storageBucket: "rummy-multiplayer-fe391.appspot.com",
+    messagingSenderId: "717212591323",
+    appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
+  };
+  firebase.initializeApp(config);
+  const db = firebase.database();
 
-    let gameCode = "";
-    let playerId = "";
-    let playerName = "";
-    let avatar = "";
+  let gameCode = "";
+  let playerId = "";
+  let playerName = "";
+  let avatar = "";
+  let hasDrawn = false;
 
-    function generateCode() {
-      return Math.random().toString(36).substring(2, 8).toUpperCase();
-    }
+  function generateCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  }
 
-    function createGame() {
-      gameCode = generateCode();
-      document.getElementById("gameCodeDisplay").innerText = `Game Code: ${gameCode}`;
-    }
+  function createGame() {
+    gameCode = generateCode();
+    document.getElementById("gameCodeDisplay").innerText = `Game Code: ${gameCode}`;
+  }
 
-    function joinGame() {
-      gameCode = document.getElementById("gameCodeInput").value.trim().toUpperCase() || gameCode;
-      playerName = document.getElementById("playerName").value.trim();
-      avatar = document.getElementById("avatarSelect").value;
-      if (!gameCode || !playerName) return alert("Enter game code and name");
+  function joinGame() {
+    gameCode = document.getElementById("gameCodeInput").value.trim().toUpperCase() || gameCode;
+    playerName = document.getElementById("playerName").value.trim();
+    avatar = document.getElementById("avatarSelect").value;
+    if (!gameCode || !playerName) return alert("Enter game code and name");
 
-      const playersRef = db.ref(`games/${gameCode}/players`);
-      playersRef.once("value").then(snap => {
-        const players = snap.val() || {};
-        if (Object.keys(players).length >= 4) return alert("Game full");
-        playerId = `player${Object.keys(players).length + 1}`;
-        db.ref(`games/${gameCode}/players/${playerId}`).set({ name: playerName, avatar, hand: [], score: 0 });
-        db.ref(`games/${gameCode}/players/${playerId}`).onDisconnect().remove();
-        document.getElementById("lobby").style.display = "none";
-        document.getElementById("game").style.display = "block";
-        if (playerId === "player1") document.getElementById("startBtn").style.display = "inline-block";
-        listen();
+    const playersRef = db.ref(`games/${gameCode}/players`);
+    playersRef.once("value").then(snap => {
+      const players = snap.val() || {};
+      if (Object.keys(players).length >= 4) return alert("Game full");
+      playerId = `player${Object.keys(players).length + 1}`;
+      db.ref(`games/${gameCode}/players/${playerId}`).set({ name: playerName, avatar, hand: [], score: 0 });
+      db.ref(`games/${gameCode}/players/${playerId}`).onDisconnect().remove();
+      document.getElementById("lobby").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      if (playerId === "player1") document.getElementById("startBtn").style.display = "inline-block";
+      listen();
+    });
+  }
+
+  function listen() {
+    const g = `games/${gameCode}`;
+    db.ref(`${g}/status`).on("value", s => {
+      const status = s.val();
+      if (status === "started") {
+        document.getElementById("controls").style.display = "block";
+        document.getElementById("chatBox").style.display = "block";
+        document.getElementById("startBtn").style.display = "none";
+      }
+    });
+    db.ref(`${g}/players`).on("value", snap => {
+      const players = snap.val() || {};
+      const others = Object.entries(players).filter(([id]) => id !== playerId);
+      const opponentDiv = document.getElementById("opponentArea");
+      opponentDiv.innerHTML = others.map(([_, p]) => `<div><div>${p.name}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}'/><div>${"🂠 ".repeat(13)}</div></div>`).join("");
+      const yourAvatar = document.getElementById("yourAvatar");
+      yourAvatar.innerHTML = `<div>${playerName}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${avatar}'/>`;
+    });
+    db.ref(`${g}/turn`).on("value", s => {
+      const turn = s.val();
+      db.ref(`${g}/players/${turn}`).once("value").then(p => {
+        const name = p.val() ? p.val().name : "someone";
+        document.getElementById("turnInfo").innerText = turn === playerId ? "Your Turn!" : `${name}'s Turn`;
       });
-    }
+    });
+    db.ref(`${g}/players/${playerId}/hand`).on("value", s => {
+      const hand = s.val() || [];
+      const div = document.getElementById("hand");
+      div.innerHTML = "";
+      hand.forEach((c, i) => {
+        const img = document.createElement("img");
+        img.className = "card-img";
+        img.src = getCardImage(c);
+        img.onclick = () => discard(i);
+        div.appendChild(img);
+      });
+    });
+    db.ref(`${g}/deck`).on("value", s => document.getElementById("deckSize").innerText = (s.val() || []).length);
+    db.ref(`${g}/discard`).on("value", s => document.getElementById("topDiscard").innerText = s.val() || "None");
+    db.ref(`${g}/chat`).on("child_added", snap => {
+      const msg = snap.val();
+      const bubble = document.createElement("div");
+      bubble.className = "chat-bubble";
+      bubble.innerText = `${msg.name}: ${msg.text}`;
+      document.getElementById("chatArea").appendChild(bubble);
+    });
+  }
 
-    function listen() {
-      const g = `games/${gameCode}`;
-      db.ref(`${g}/status`).on("value", s => {
-        const status = s.val();
-        if (status === "started") {
-          document.getElementById("controls").style.display = "block";
-          document.getElementById("chatBox").style.display = "block";
-          document.getElementById("startBtn").style.display = "none";
-        }
+  function startGame() {
+    const suits = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
+    const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+    const g = `games/${gameCode}`;
+    db.ref(`${g}/players`).once("value").then(snap => {
+      const players = snap.val();
+      let deck = [];
+      for (let i = 0; i < 2; i++) suits.forEach(s => ranks.forEach(r => deck.push(`${r} of ${s}`)));
+      deck = deck.sort(() => Math.random() - 0.5);
+      db.ref(`${g}/deck`).set(deck);
+      db.ref(`${g}/status`).set("started");
+      db.ref(`${g}/discard`).set("None");
+      Object.keys(players).forEach(pid => {
+        const hand = deck.splice(0, 13);
+        db.ref(`${g}/players/${pid}/hand`).set(hand);
       });
-      db.ref(`${g}/players`).on("value", snap => {
-        const players = snap.val() || {};
-        const others = Object.entries(players).filter(([id]) => id !== playerId);
-        const opponentDiv = document.getElementById("opponentArea");
-        opponentDiv.innerHTML = others.map(([_, p]) => `<div><div>${p.name}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}'/><div>${"🂠 ".repeat(13)}</div></div>`).join("");
-        const yourAvatar = document.getElementById("yourAvatar");
-        yourAvatar.innerHTML = `<div>${playerName}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${avatar}'/>`;
-      });
-      db.ref(`${g}/turn`).on("value", s => {
-        const turn = s.val();
-        db.ref(`${g}/players/${turn}`).once("value").then(p => {
-          const name = p.val() ? p.val().name : "someone";
-          document.getElementById("turnInfo").innerText = turn === playerId ? "Your Turn!" : `${name}'s Turn`;
+      db.ref(`${g}/deck`).set(deck);
+      db.ref(`${g}/turn`).set("player1");
+    });
+  }
+
+  function drawCard() {
+    const g = `games/${gameCode}`;
+    db.ref(`${g}/turn`).once("value").then(t => {
+      if (t.val() !== playerId) return alert("Not your turn!");
+      if (hasDrawn) return alert("You already drew a card.");
+      db.ref(`${g}/deck`).once("value").then(s => {
+        const deck = s.val();
+        const card = deck.pop();
+        db.ref(`${g}/deck`).set(deck);
+        db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
+          const hand = h.val() || [];
+          hand.push(card);
+          db.ref(`${g}/players/${playerId}/hand`).set(hand);
+          hasDrawn = true;
         });
       });
-      db.ref(`${g}/players/${playerId}/hand`).on("value", s => {
-        const hand = s.val() || [];
-        const div = document.getElementById("hand");
-        div.innerHTML = "";
-        hand.forEach((c, i) => {
-          const img = document.createElement("img");
-          img.className = "card-img";
-          img.src = getCardImage(c);
-          img.onclick = () => discard(i);
-          div.appendChild(img);
-        });
-      });
-      db.ref(`${g}/deck`).on("value", s => document.getElementById("deckSize").innerText = (s.val() || []).length);
-      db.ref(`${g}/discard`).on("value", s => document.getElementById("topDiscard").innerText = s.val() || "None");
-      db.ref(`${g}/chat`).on("child_added", snap => {
-        const msg = snap.val();
-        const bubble = document.createElement("div");
-        bubble.className = "chat-bubble";
-        bubble.innerText = `${msg.name}: ${msg.text}`;
-        document.getElementById("chatArea").appendChild(bubble);
-      });
-    }
+    });
+  }
 
-    function startGame() {
-      const suits = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
-      const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-      const g = `games/${gameCode}`;
+  function discard(index) {
+    if (!hasDrawn) return alert("Draw a card first!");
+    const g = `games/${gameCode}`;
+    db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
+      const hand = h.val();
+      const card = hand.splice(index, 1)[0];
+      db.ref(`${g}/players/${playerId}/hand`).set(hand);
+      db.ref(`${g}/discard`).set(card);
       db.ref(`${g}/players`).once("value").then(snap => {
-        const players = snap.val();
-        let deck = [];
-        for (let i = 0; i < 1; i++) suits.forEach(s => ranks.forEach(r => deck.push(`${r} of ${s}`)));
-        if (Object.keys(players).length * 13 > 52) {
-          for (let i = 0; i < 2; i++) suits.forEach(s => ranks.forEach(r => deck.push(`${r} of ${s}`)));
-        }
-        deck = deck.sort(() => Math.random() - 0.5);
-        db.ref(`${g}/deck`).set(deck);
-        db.ref(`${g}/status`).set("started");
-        db.ref(`${g}/discard`).set("None");
-        Object.keys(players).forEach(pid => {
-          const hand = deck.splice(0, 13);
-          db.ref(`${g}/players/${pid}/hand`).set(hand);
-        });
-        db.ref(`${g}/deck`).set(deck);
-        db.ref(`${g}/turn`).set("player1");
+        const ids = Object.keys(snap.val());
+        const i = ids.indexOf(playerId);
+        const next = ids[(i + 1) % ids.length];
+        db.ref(`${g}/turn`).set(next);
+        hasDrawn = false;
       });
-    }
+    });
+  }
 
-    function drawCard() {
-      const g = `games/${gameCode}`;
-      db.ref(`${g}/turn`).once("value").then(t => {
-        if (t.val() !== playerId) return alert("Not your turn!");
-        db.ref(`${g}/deck`).once("value").then(s => {
-          const deck = s.val();
-          const card = deck.pop();
-          db.ref(`${g}/deck`).set(deck);
-          db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
-            const hand = h.val() || [];
-            hand.push(card);
-            db.ref(`${g}/players/${playerId}/hand`).set(hand);
-          });
-        });
-      });
-    }
+  function sortHand() {
+    const g = `games/${gameCode}`;
+    db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
+      const hand = h.val();
+      hand.sort();
+      db.ref(`${g}/players/${playerId}/hand`).set(hand);
+    });
+  }
 
-    function discard(index) {
-      const g = `games/${gameCode}`;
-      db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
-        const hand = h.val();
-        const card = hand.splice(index, 1)[0];
-        db.ref(`${g}/players/${playerId}/hand`).set(hand);
-        db.ref(`${g}/discard`).set(card);
-        db.ref(`${g}/players`).once("value").then(snap => {
-          const ids = Object.keys(snap.val());
-          const i = ids.indexOf(playerId);
-          const next = ids[(i + 1) % ids.length];
-          db.ref(`${g}/turn`).set(next);
-        });
-      });
-    }
+  function meld() {
+    alert("Meld logic coming soon!");
+  }
 
-    function sortHand() {
-      const g = `games/${gameCode}`;
-      db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
-        const hand = h.val();
-        hand.sort();
-        db.ref(`${g}/players/${playerId}/hand`).set(hand);
-      });
-    }
+  function sendChat() {
+    const text = document.getElementById("chatInput").value;
+    if (!text) return;
+    db.ref(`games/${gameCode}/chat`).push({ name: playerName, text });
+    document.getElementById("chatInput").value = "";
+  }
 
-    function meld() {
-      alert("Meld logic coming soon");
-    }
-
-    function sendChat() {
-      const text = document.getElementById("chatInput").value;
-      if (!text) return;
-      db.ref(`games/${gameCode}/chat`).push({ name: playerName, text });
-      document.getElementById("chatInput").value = "";
-    }
-
-    function getCardImage(card) {
-      const rankMap = { A: "A", J: "J", Q: "Q", K: "K", "10": "0" };
-      const suitMap = { Spades: "S", Hearts: "H", Diamonds: "D", Clubs: "C" };
-      const [rank, , suit] = card.split(" ");
-      const r = rankMap[rank] || rank;
-      const s = suitMap[suit];
-      return `https://deckofcardsapi.com/static/img/${r}${s}.png`;
-    }
-  </script>
+  function getCardImage(card) {
+    const rankMap = { A: "A", J: "J", Q: "Q", K: "K", "10": "0" };
+    const suitMap = { Spades: "S", Hearts: "H", Diamonds: "D", Clubs: "C" };
+    const [rank, , suit] = card.split(" ");
+    const r = rankMap[rank] || rank;
+    const s = suitMap[suit];
+    return `https://deckofcardsapi.com/static/img/${r}${s}.png`;
+  }
+</script>
 </body>
 </html>

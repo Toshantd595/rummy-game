@@ -15,6 +15,11 @@
     padding: 0;
     overflow-x: hidden;
   }
+  
+.meld-selected {
+  outline: 3px solid #66ffcc;
+  transform: scale(1.1);
+}
 
   h1 {
     color: #facc15;
@@ -201,8 +206,7 @@
     </div>
 
     <!-- 🧩 Melded Sets Area -->
-    <div id="meldedArea" class="melded-cards" style="display:none;"></div>
-
+    
     <!-- 🤲 Player Hand -->
     <h3 style="margin:10px;">Your Hand</h3>
     <div class="cards" id="hand"></div>
@@ -293,6 +297,11 @@ function joinGame() {
         document.getElementById("startBtn").style.display = "inline-block";
       }
       listen();
+      if (status === "started") {
+  document.getElementById("controls").style.display = "flex";
+  document.getElementById("chatBox").style.display = "block";
+}
+
     });
   });
 }
@@ -309,6 +318,18 @@ function listen() {
   }
 });
 
+
+db.ref(`games/${gameCode}/winner`).on("value", snap => {
+  const winner = snap.val();
+  if (winner && winner.name) {
+    document.getElementById("turnInfo").innerText = `🎉 ${winner.name} wins the game! 🎉`;
+    if (playerId === "player1") {
+      document.getElementById("resetBtn").style.display = "inline-block";
+    }
+  }
+});
+
+  
 db.ref(`games/${gameCode}/players`).on("value", snap => {
   const players = snap.val() || {};
   const opponent = Object.entries(players).find(([id, _]) => id !== playerId);
@@ -431,22 +452,25 @@ function drawCard() {
 function renderHand(hand) {
   const div = document.getElementById("hand");
   div.innerHTML = "";
-  hand.forEach(c => {
-    const img = document.createElement("img");
-    img.className = "card-img";
-    img.src = getCardImage(c);
-img.onclick = () => {
-  if (hasDrawn) {
-    const index = hand.indexOf(c);
-    discard(index);
-  } else {
-    toggleSelect(c);
-  }
-};
-    if (selectedCards.includes(c)) img.classList.add("meld-selected");
-    if (newDrawnCard === c) img.classList.add("new-card"); // Highlight it
-    div.appendChild(img);
-  });
+hand.forEach(c => {
+  const img = document.createElement("img");
+  img.className = "card-img";
+  img.src = getCardImage(c);
+  
+  if (selectedCards.includes(c)) img.classList.add("meld-selected");  // 👈 Add this line
+
+  img.onclick = () => {
+    if (hasDrawn) {
+      const index = hand.indexOf(c);
+      discard(index);
+    } else {
+      toggleSelect(c);
+    }
+  };
+
+  div.appendChild(img);
+});
+
 }
 
   
@@ -503,6 +527,7 @@ function sortHand() {
 
 function showMeld(cards) {
   const area = document.getElementById("meldedArea");
+  area.innerHTML = ""; // ✅ Clear previous melds
   cards.forEach(c => {
     const img = document.createElement("img");
     img.src = getCardImage(c);
@@ -510,6 +535,7 @@ function showMeld(cards) {
     area.appendChild(img);
   });
 }
+
 
 
 function meld() {
@@ -546,19 +572,6 @@ function meld() {
   } else {
     alert("❌ Invalid meld. Must be same rank or same suit in sequence.");
   }
-}
-
-
-function showMeld(cards) {
-  const area = document.getElementById("meldedArea");
-  area.innerHTML = '';
-  cards.forEach(c => {
-    const img = document.createElement("img");
-    img.src = getCardImage(c);
-    img.className = "card-img";
-    area.appendChild(img);
-  });
-  area.style.display = 'flex';
 }
 
   
@@ -639,16 +652,61 @@ function launchFireworks() {
 
 // ✅ Win logic override to include fireworks + leaderboard
 function declareVictory(name) {
-  if (document.getElementById("soundToggle").checked) playSound("win");
-  launchFireworks();
-  saveWin(name);
-  alert(`🎉 ${name} wins the game!`);
-  db.ref(`games/${gameCode}/status`).set("ended");
+  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(snap => {
+    const hand = snap.val() || [];
 
-  if (playerId === "player1") {
-    document.getElementById("resetBtn").style.display = "inline-block";
-  }
+    // Basic winning rule: Must form at least 2 valid melds of 3+ cards (6+ cards total)
+    const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+    let validMelds = 0;
+    let used = new Set();
+
+    for (let i = 0; i < hand.length - 2; i++) {
+      if (used.has(i)) continue;
+      const group = [hand[i]];
+
+      for (let j = i + 1; j < hand.length; j++) {
+        if (used.has(j)) continue;
+        group.push(hand[j]);
+
+        const isSet = group.length >= 3 && group.every((c, _, arr) => {
+          const [r1,, s1] = c.split(" ");
+          return arr.every(x => {
+            const [r2,, s2] = x.split(" ");
+            return r1 === r2 && s1 !== s2;
+          });
+        });
+
+        const sorted = [...group].map(c => {
+          const [r,, s] = c.split(" ");
+          return { card: c, suit: s, index: rankOrder.indexOf(r) };
+        }).sort((a, b) => a.index - b.index);
+
+        let isRun = true;
+        for (let k = 1; k < sorted.length; k++) {
+          if (sorted[k].suit !== sorted[0].suit || sorted[k].index !== sorted[k - 1].index + 1) {
+            isRun = false;
+            break;
+          }
+        }
+
+        if (isSet || isRun) {
+          group.forEach(card => used.add(hand.indexOf(card)));
+          validMelds++;
+          break;
+        }
+      }
+    }
+
+    if (validMelds >= 2) {
+      db.ref(`games/${gameCode}/status`).set("ended");
+      db.ref(`games/${gameCode}/winner`).set({ name, score: 100 });
+    } else {
+      alert("❌ Invalid declare. You must have at least 2 valid melds.");
+    }
+  });
 }
+
 
 
 

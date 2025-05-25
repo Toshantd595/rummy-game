@@ -9,15 +9,19 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; text-align: center; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; margin: 0; padding: 0; }
     h1 { color: #facc15; margin-top: 20px; }
-    input, select, button { padding: 10px; margin: 5px; font-size: 16px; border-radius: 5px; border: none; }
+    input, select, button, textarea { padding: 10px; margin: 5px; font-size: 16px; border-radius: 5px; border: none; }
     button { background: #facc15; color: black; cursor: pointer; }
     .card-img { width: 70px; height: 100px; margin: 5px; cursor: pointer; transition: transform 0.2s; }
     .card-img:hover { transform: scale(1.1); }
     .cards, .avatars { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
     .avatar img { width: 50px; height: 50px; border-radius: 50%; }
     .section { margin: 20px; }
+    .table-layout { display: flex; flex-direction: column; align-items: center; }
+    .player-top, .player-bottom { margin: 10px 0; }
+    .chat-box { background: #333; padding: 10px; border-radius: 5px; margin-top: 10px; max-width: 400px; margin-left: auto; margin-right: auto; }
+    .chat-bubble { background: #fef08a; color: #000; padding: 8px 12px; border-radius: 10px; margin: 5px; display: inline-block; }
   </style>
 </head>
 <body>
@@ -42,25 +46,27 @@
   </div>
 
   <div id="game" style="display:none">
-    <div class="section">
-      <div id="turnInfo"></div>
-      <div id="gameStatus"></div>
-      <div class="avatars" id="playerAvatars"></div>
+    <div class="section table-layout">
+      <div class="player-top" id="opponentArea"></div>
+      <div class="section">
+        <div id="turnInfo"></div>
+        <button onclick="drawCard()">Draw Card</button>
+        <button onclick="sortHand()">Sort Hand</button>
+        <button onclick="meld()">Meld / Lay Off</button>
+        <button onclick="startGame()" id="startBtn" style="display:none">Start Game</button>
+      </div>
+      <div class="section">
+        Deck Size: <span id="deckSize">0</span> | Top Discard: <span id="topDiscard">None</span>
+      </div>
+      <h3>Your Hand</h3>
+      <div class="cards" id="hand"></div>
+      <div class="player-bottom" id="yourAvatar"></div>
     </div>
-
-    <div class="section">
-      <button onclick="drawCard()">Draw Card</button>
-      <button onclick="declare()">Declare</button>
-      <button onclick="startGame()" id="startBtn" style="display:none">Start Game</button>
+    <div class="chat-box">
+      <input type="text" id="chatInput" placeholder="Say something..." onkeydown="if(event.key==='Enter') sendChat()">
+      <button onclick="sendChat()">Speak</button>
+      <div id="chatArea"></div>
     </div>
-
-    <div class="section">
-      Deck Size: <span id="deckSize">0</span><br>
-      Top Discard: <span id="topDiscard">None</span>
-    </div>
-
-    <h3>Your Hand</h3>
-    <div class="cards" id="hand"></div>
   </div>
 
   <script>
@@ -112,17 +118,13 @@
 
     function listen() {
       const g = `games/${gameCode}`;
-      db.ref(`${g}/status`).on("value", s => document.getElementById("gameStatus").innerText = `Status: ${s.val()}`);
       db.ref(`${g}/players`).on("value", snap => {
-        const avatars = document.getElementById("playerAvatars");
-        avatars.innerHTML = "";
         const players = snap.val() || {};
-        Object.values(players).forEach(p => {
-          const div = document.createElement("div");
-          div.className = "avatar";
-          div.innerHTML = `<img src="https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}" title="${p.name}" />`;
-          avatars.appendChild(div);
-        });
+        const others = Object.entries(players).filter(([id]) => id !== playerId);
+        const opponentDiv = document.getElementById("opponentArea");
+        opponentDiv.innerHTML = others.map(([_, p]) => `<div><div>${p.name}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${p.avatar}'/><div>${"🂠 ".repeat(13)}</div></div>`).join("");
+        const yourAvatar = document.getElementById("yourAvatar");
+        yourAvatar.innerHTML = `<div>${playerName}</div><img src='https://api.dicebear.com/7.x/thumbs/svg?seed=${avatar}'/>`;
       });
       db.ref(`${g}/players/${playerId}/hand`).on("value", s => {
         const hand = s.val() || [];
@@ -137,13 +139,18 @@
         });
       });
       db.ref(`${g}/turn`).on("value", s => {
-        document.getElementById("turnInfo").innerText = s.val() === playerId ? "Your Turn!" : `Waiting for ${s.val()}`;
+        const turn = s.val();
+        document.getElementById("turnInfo").innerText = turn ? (turn === playerId ? "Your Turn!" : `Waiting for ${turn}`) : "Waiting for players to join...";
+        if (turn && playerId === "player1") document.getElementById("startBtn").style.display = "none";
       });
-      db.ref(`${g}/deck`).on("value", s => {
-        document.getElementById("deckSize").innerText = (s.val() || []).length;
-      });
-      db.ref(`${g}/discard`).on("value", s => {
-        document.getElementById("topDiscard").innerText = s.val() || "None";
+      db.ref(`${g}/deck`).on("value", s => document.getElementById("deckSize").innerText = (s.val() || []).length);
+      db.ref(`${g}/discard`).on("value", s => document.getElementById("topDiscard").innerText = s.val() || "None");
+      db.ref(`${g}/chat`).on("child_added", snap => {
+        const msg = snap.val();
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble";
+        bubble.innerText = `${msg.name}: ${msg.text}`;
+        document.getElementById("chatArea").appendChild(bubble);
       });
     }
 
@@ -199,6 +206,26 @@
           db.ref(`${g}/turn`).set(next);
         });
       });
+    }
+
+    function sortHand() {
+      const g = `games/${gameCode}`;
+      db.ref(`${g}/players/${playerId}/hand`).once("value").then(h => {
+        const hand = h.val();
+        hand.sort();
+        db.ref(`${g}/players/${playerId}/hand`).set(hand);
+      });
+    }
+
+    function meld() {
+      alert("Meld logic coming soon");
+    }
+
+    function sendChat() {
+      const text = document.getElementById("chatInput").value;
+      if (!text) return;
+      db.ref(`games/${gameCode}/chat`).push({ name: playerName, text });
+      document.getElementById("chatInput").value = "";
     }
 
     function getCardImage(card) {

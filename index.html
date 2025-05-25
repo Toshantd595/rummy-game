@@ -128,7 +128,8 @@ const firebaseConfig = {
   messagingSenderId: "717212591323",
   appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
 };
-
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
     
 
   const player = { name: "", avatar: "", id: "" };

@@ -26,6 +26,10 @@
     text-align: center;
     padding: 10px;
   }
+.card-img:hover {
+  box-shadow: 0 0 10px gold;
+  cursor: pointer;
+}
 
   input, select, button {
     padding: 10px;
@@ -475,36 +479,32 @@ hand.forEach(c => {
 
   
 function discard(index) {
-  db.ref(`games/${gameCode}/turn`).once("value").then(tSnap => {
-    if (tSnap.val() !== playerId) return alert("Not your turn!");
+  if (!hasDrawn) {
+    return alert("🛑 You must draw a card before discarding.");
+  }
 
-    db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(hSnap => {
-      let hand = hSnap.val() || [];
+  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(h => {
+    let hand = h.val() || [];
+    if (index < 0 || index >= hand.length) return;
 
-      if (!hasDrawn) {
-        return alert("You must draw a card before discarding.");
-      }
+    const card = hand.splice(index, 1)[0];
+    db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
+    db.ref(`games/${gameCode}/discard`).set(card);
 
-      const card = hand.splice(index, 1)[0];
-      db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
-      db.ref(`games/${gameCode}/discard`).set(card);
-
-      // ✅ Advance turn
-      db.ref(`games/${gameCode}/players`).once("value").then(pSnap => {
-        const allIds = Object.keys(pSnap.val());
-        const currentIndex = allIds.indexOf(playerId);
-        const nextPlayer = allIds[(currentIndex + 1) % allIds.length];
-        db.ref(`games/${gameCode}/turn`).set(nextPlayer);
+    // 🔁 Move to next player
+    db.ref(`games/${gameCode}/turn`).once("value").then(t => {
+      db.ref(`games/${gameCode}/players`).once("value").then(p => {
+        const ids = Object.keys(p.val());
+        const i = ids.indexOf(playerId);
+        const next = ids[(i + 1) % ids.length];
+        db.ref(`games/${gameCode}/turn`).set(next);
+        hasDrawn = false; // ✅ Reset for next turn
+        selectedCards = []; // 🧹 Clear selection
       });
-
-      // 🧹 Cleanup flags & visuals
-      hasDrawn = false;
-      newDrawnCard = null;
-      selectedCards = [];
-      renderHand(hand); // refresh UI
     });
   });
 }
+
 
 
 function sortHand() {
@@ -655,57 +655,17 @@ function declareVictory(name) {
   db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(snap => {
     const hand = snap.val() || [];
 
-    // Basic winning rule: Must form at least 2 valid melds of 3+ cards (6+ cards total)
-    const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-
-    let validMelds = 0;
-    let used = new Set();
-
-    for (let i = 0; i < hand.length - 2; i++) {
-      if (used.has(i)) continue;
-      const group = [hand[i]];
-
-      for (let j = i + 1; j < hand.length; j++) {
-        if (used.has(j)) continue;
-        group.push(hand[j]);
-
-        const isSet = group.length >= 3 && group.every((c, _, arr) => {
-          const [r1,, s1] = c.split(" ");
-          return arr.every(x => {
-            const [r2,, s2] = x.split(" ");
-            return r1 === r2 && s1 !== s2;
-          });
-        });
-
-        const sorted = [...group].map(c => {
-          const [r,, s] = c.split(" ");
-          return { card: c, suit: s, index: rankOrder.indexOf(r) };
-        }).sort((a, b) => a.index - b.index);
-
-        let isRun = true;
-        for (let k = 1; k < sorted.length; k++) {
-          if (sorted[k].suit !== sorted[0].suit || sorted[k].index !== sorted[k - 1].index + 1) {
-            isRun = false;
-            break;
-          }
-        }
-
-        if (isSet || isRun) {
-          group.forEach(card => used.add(hand.indexOf(card)));
-          validMelds++;
-          break;
-        }
-      }
+    // ⛔ Check if hand is empty (i.e. fully melded or laid off)
+    if (hand.length > 0) {
+      return alert("❌ You must use all your cards before declaring victory.");
     }
 
-    if (validMelds >= 2) {
-      db.ref(`games/${gameCode}/status`).set("ended");
-      db.ref(`games/${gameCode}/winner`).set({ name, score: 100 });
-    } else {
-      alert("❌ Invalid declare. You must have at least 2 valid melds.");
-    }
+    // ✅ If hand is empty, declare winner
+    db.ref(`games/${gameCode}/status`).set("ended");
+    db.ref(`games/${gameCode}/winner`).set({ name, score: 100 });
   });
 }
+
 
 
 

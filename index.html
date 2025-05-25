@@ -594,13 +594,12 @@ function declareVictory(name) {
   saveWin(name);
   alert(`🎉 ${name} wins the game!`);
   db.ref(`games/${gameCode}/status`).set("ended");
-}
-  
-db.ref(`games/${gameCode}/players/${playerId}`).once("value").then(p => {
+
   if (playerId === "player1") {
     document.getElementById("resetBtn").style.display = "inline-block";
   }
-});
+}
+
 
 
 // 📈 Save win to leaderboard in Firebase

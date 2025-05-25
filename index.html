@@ -322,6 +322,21 @@ db.ref(`games/${gameCode}/players`).on("value", snap => {
   }
 });
 
+db.ref(`games/${gameCode}/status`).on("value", s => {
+  const status = s.val();
+  
+  if (status === "started") {
+    document.getElementById("controls").style.display = "flex";     // 🎮 show Draw/Sort/Meld
+    document.getElementById("chatBox").style.display = "block";     // 💬 show chat area
+    document.getElementById("startBtn").style.display = "none";     // 🚫 hide Start Game button
+  } 
+  
+  else if (status === "ended") {
+    document.getElementById("controls").style.display = "none";     // 📴 hide controls
+    document.getElementById("chatBox").style.display = "none";      // 📴 hide chat
+  }
+});
+
 
   db.ref(`${g}/turn`).on("value", s => {
     const turn = s.val();
@@ -370,6 +385,10 @@ function startGame() {
     deck = deck.sort(() => Math.random() - 0.5);
     db.ref(`${g}/deck`).set(deck);
     db.ref(`${g}/status`).set("started");
+    document.getElementById("startBtn").style.display = "none"; // 👈 hide it
+    document.getElementById("controls").style.display = "flex"; // 👈 show controls
+    document.getElementById("chatBox").style.display = "block"; // 👈 show chat
+
     db.ref(`${g}/discard`).set("None");
     Object.keys(players).forEach(pid => {
       const hand = deck.splice(0, 13);

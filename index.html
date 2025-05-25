@@ -206,6 +206,10 @@
     <!-- 🤲 Player Hand -->
     <h3 style="margin:10px;">Your Hand</h3>
     <div class="cards" id="hand"></div>
+    <!-- 📍 Melded Sets Display Area -->
+<h3 style="margin:10px;">Melded Cards</h3>
+<div id="meldedArea" class="melded-cards" style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px; padding:8px;"></div>
+
     <div class="your-area" id="yourAvatar"></div>
 
     <!-- 🔘 Start Game (Player 1 only) -->
@@ -448,23 +452,32 @@ img.onclick = () => {
   
 function discard(index) {
   db.ref(`games/${gameCode}/turn`).once("value").then(tSnap => {
-    if (tSnap.val() !== playerId) return;
+    if (tSnap.val() !== playerId) return alert("Not your turn!");
 
     db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(hSnap => {
       let hand = hSnap.val() || [];
+
+      if (!hasDrawn) {
+        return alert("You must draw a card before discarding.");
+      }
+
       const card = hand.splice(index, 1)[0];
       db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
-      selectedCards = [];
       db.ref(`games/${gameCode}/discard`).set(card);
 
+      // ✅ Advance turn
       db.ref(`games/${gameCode}/players`).once("value").then(pSnap => {
         const allIds = Object.keys(pSnap.val());
         const currentIndex = allIds.indexOf(playerId);
         const nextPlayer = allIds[(currentIndex + 1) % allIds.length];
         db.ref(`games/${gameCode}/turn`).set(nextPlayer);
-        hasDrawn = false;         // ✅ fix
-        newDrawnCard = null;      // ✅ remove highlight
       });
+
+      // 🧹 Cleanup flags & visuals
+      hasDrawn = false;
+      newDrawnCard = null;
+      selectedCards = [];
+      renderHand(hand); // refresh UI
     });
   });
 }
@@ -488,6 +501,15 @@ function sortHand() {
   });
 }
 
+function showMeld(cards) {
+  const area = document.getElementById("meldedArea");
+  cards.forEach(c => {
+    const img = document.createElement("img");
+    img.src = getCardImage(c);
+    img.className = "card-img";
+    area.appendChild(img);
+  });
+}
 
 
 function meld() {

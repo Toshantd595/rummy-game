@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Multiplayer Rummy Game</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h1>Rummy Multiplayer</h1>
+  <div>
+    <label>Your Name: <input id="playerName" /></label>
+    <button onclick="joinGame()">Join Game</button>
+  </div>
+  <hr>
+  <div id="gameArea" style="display:none;">
+    <h2 id="turnInfo"></h2>
+    <p>Your Hand:</p>
+    <ul id="hand"></ul>
+    <button onclick="drawCard()">Draw Card</button>
+    <p>Click on a card to discard it.</p>
+    <p>Deck Size: <span id="deckSize"></span></p>
+    <p>Top Discard: <span id="topDiscard"></span></p>
+  </div>
+
+  <script>
+    // Paste your Firebase config here ↓↓↓
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let player = "";
+
+    function joinGame() {
+      player = document.getElementById("playerName").value.trim();
+      if (!player) return alert("Enter a name!");
+      db.ref(`players/${player}`).set({ hand: [] });
+      document.getElementById("gameArea").style.display = "block";
+      listenGame();
+    }
+
+    function listenGame() {
+      db.ref("deck").on("value", snap => {
+        const deck = snap.val() || [];
+        document.getElementById("deckSize").innerText = deck.length;
+      });
+
+      db.ref("discard").on("value", snap => {
+        document.getElementById("topDiscard").innerText = snap.val() || "None";
+      });
+
+      db.ref(`players/${player}/hand`).on("value", snap => {
+        const hand = snap.val() || [];
+        let html = '';
+        hand.forEach((card, i) => {
+          html += `<li onclick="discard(${i})">${card}</li>`;
+        });
+        document.getElementById("hand").innerHTML = html;
+      });
+
+      db.ref("turn").on("value", snap => {
+        const turn = snap.val();
+        document.getElementById("turnInfo").innerText = (turn === player) ? "It's your turn!" : `Waiting for ${turn}...`;
+      });
+    }
+
+    function drawCard() {
+      db.ref("turn").once("value").then(snap => {
+        if (snap.val() !== player) return alert("Not your turn!");
+
+        db.ref("deck").once("value").then(deckSnap => {
+          const deck = deckSnap.val() || [];
+          if (!deck.length) return alert("Deck is empty");
+
+          const card = deck.pop();
+          db.ref("deck").set(deck);
+          db.ref(`players/${player}/hand`).once("value").then(handSnap => {
+            const hand = handSnap.val() || [];
+            hand.push(card);
+            db.ref(`players/${player}/hand`).set(hand);
+          });
+        });
+      });
+    }
+
+    function discard(index) {
+      db.ref("turn").once("value").then(snap => {
+        if (snap.val() !== player) return alert("Not your turn!");
+
+        db.ref(`players/${player}/hand`).once("value").then(handSnap => {
+          const hand = handSnap.val() || [];
+          const card = hand.splice(index, 1)[0];
+          db.ref(`players/${player}/hand`).set(hand);
+          db.ref("discard").set(card);
+          // Pass turn
+          db.ref("players").once("value").then(pSnap => {
+            const names = Object.keys(pSnap.val() || {});
+            const idx = names.indexOf(player);
+            const next = names[(idx + 1) % names.length];
+            db.ref("turn").set(next);
+          });
+        });
+      });
+    }
+  </script>
+</body>
+</html>

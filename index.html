@@ -211,10 +211,10 @@ function joinGame() {
       document.getElementById("game").style.display = "block";
       listen();
 
-      db.ref(`games/${gameCode}/players`).on("value", snap => {
-        const playerList = snap.val() || {};
-        if (Object.keys(playerList).length >= 2 && playerId === "player1") {
-          document.getElementById("startGameContainer").style.display = "block";
+db.ref(`games/${gameCode}/players`).on("value", snap => {
+  const playerList = snap.val() || {};
+  if (Object.keys(playerList).length >= 2 && playerId === "player1") {
+    document.getElementById("startGameContainer").style.display = "block";
         }
       });
     });

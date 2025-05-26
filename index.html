@@ -178,21 +178,41 @@ function joinGame() {
   const inputCode = document.getElementById("gameCodeInput").value.trim().toUpperCase();
   if (!inputCode) return alert("Enter Game Code");
   gameCode = inputCode;
+
   playerName = document.getElementById("playerName").value.trim();
   if (!playerName) return alert("Enter your name");
+
   const avatar = document.getElementById("avatarSelect").value;
 
-  db.ref(`games/${gameCode}/players`).once("value").then(snap => {
-    const players = snap.val() || {};
-    if (Object.keys(players).length >= 4) return alert("Max 4 players");
+  db.ref(`games/${gameCode}`).once("value").then(gameSnap => {
+    const game = gameSnap.val();
+    if (!game) return alert("Game not found!");
 
-    playerId = "player" + (Object.keys(players).length + 1);
-    db.ref(`games/${gameCode}/players/${playerId}`).set({ name: playerName, avatar, hand: [] });
-    document.getElementById("lobby").style.display = "none";
-    document.getElementById("game").style.display = "block";
-    listen();
+    const players = game.players || {};
+    if (Object.keys(players).length >= 4) return alert("Maximum 4 players allowed");
+
+    // Assign player ID (next available slot)
+    const usedIds = Object.keys(players);
+    const nextId = usedIds.includes("player1") ? 
+                   (usedIds.includes("player2") ? 
+                    (usedIds.includes("player3") ? "player4" : "player3") 
+                    : "player2") 
+                   : "player1";
+
+    playerId = nextId;
+
+    db.ref(`games/${gameCode}/players/${nextId}`).set({
+      name: playerName,
+      avatar: avatar,
+      hand: []
+    }).then(() => {
+      document.getElementById("lobby").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      listen();
+    });
   });
 }
+
 
 // ✅ Start Game
 function drawCard() {

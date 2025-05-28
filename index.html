@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Love Rummy</title>
   <style>
-    /* Simplified here: the full CSS includes transitions, hover effects, voice button styles, fun chat buttons, and responsive card layout */
     body {
       font-family: 'Playfair Display', serif;
       background: linear-gradient(to bottom, #fff0f5, #ffe4e1);
@@ -15,13 +14,51 @@
     }
     .container { max-width: 1000px; margin: auto; padding: 20px; text-align: center; }
     .header h1 { color: #e91e63; }
-    .control-btn, .fun-chat-btn { background-color: #ff4081; color: white; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; transition: transform 0.2s ease; margin: 5px; }
-    .control-btn:hover, .fun-chat-btn:hover { transform: scale(1.05); }
-    .card { width: 60px; height: 90px; background: white; border: 1px solid #ccc; border-radius: 6px; display: inline-block; margin: 5px; padding-top: 25px; transition: transform 0.3s ease; cursor: pointer; }
-    .card:hover { transform: rotate(-2deg) scale(1.1); box-shadow: 0 0 10px rgba(0,0,0,0.2); }
+    .control-btn, .fun-chat-btn {
+      background-color: #ff4081;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      margin: 5px;
+    }
+    .control-btn:hover, .fun-chat-btn:hover {
+      transform: scale(1.05);
+    }
+    .card {
+      width: 60px;
+      height: 90px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      display: inline-block;
+      margin: 5px;
+      padding-top: 25px;
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: rotate(-2deg) scale(1.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
     #voiceBtn { background-color: #7b1fa2; }
-    #playerHand { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
-    #chatMessages { height: 150px; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 10px; background: #fff5f8; padding: 10px; border-radius: 8px; }
+    #playerHand {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    #chatMessages {
+      height: 150px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      background: #fff5f8;
+      padding: 10px;
+      border-radius: 8px;
+    }
     .chat-message { margin: 5px 0; }
   </style>
 </head>
@@ -59,12 +96,10 @@
     </div>
   </div>
 
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
       authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
@@ -77,15 +112,30 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let roomId = '', username = '', playerId = '', hand = [], deck = [], discardPile = [];
+    let roomId = '', username = '', playerId = '', hand = [], fullDeck = [];
+
+    function generateDeck() {
+      const suits = ['♥️','♣️','♦️','♠️'];
+      const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+      let deck = [];
+      suits.forEach(suit => {
+        values.forEach(value => {
+          deck.push(`${value}${suit}`);
+        });
+      });
+      return deck.sort(() => Math.random() - 0.5);
+    }
 
     function createRoom() {
       username = prompt("Your name:");
       if (!username) return;
       roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
       playerId = `player_${Date.now()}`;
+      fullDeck = generateDeck();
       db.ref(`rooms/${roomId}`).set({
         players: { [playerId]: username },
+        deck: fullDeck,
+        chat: {},
         status: 'waiting'
       });
       enterRoom();
@@ -115,10 +165,14 @@
     }
 
     function drawCard() {
-      const suits = ['♥️','♣️','♦️','♠️'], values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-      const card = values[Math.floor(Math.random()*13)] + suits[Math.floor(Math.random()*4)];
-      hand.push(card);
-      updateHand();
+      db.ref(`rooms/${roomId}/deck`).once('value', snap => {
+        let deck = snap.val();
+        if (!deck || deck.length === 0) return alert("No cards left in deck!");
+        let card = deck.shift();
+        hand.push(card);
+        db.ref(`rooms/${roomId}/deck`).set(deck);
+        updateHand();
+      });
     }
 
     function updateHand() {
@@ -126,7 +180,11 @@
     }
 
     function declareWin() {
-      alert("Congrats, love! You declared victory! 🎉");
+      if (hand.length === 13) {
+        alert("You declared a win with 13 cards! 🎉");
+      } else {
+        alert("Invalid declaration — you must have exactly 13 cards.");
+      }
     }
 
     function sendMessage() {

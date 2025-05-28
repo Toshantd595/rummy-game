@@ -192,11 +192,79 @@ function discardCard(index) {
   updateHand();
 }
 
-function declareWin() {
-  if (hand.length !== 13) return alert("You must have 13 cards to declare.");
-  // Basic 3 group check placeholder (not full Rummy meld validation)
-  alert("Congratulations! You declared a win! 🎉 (Full validation coming soon)");
+function isValidMeld(cards) {
+  // Helper: sort card values
+  const order = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  function cardValue(c) { return order.indexOf(c.slice(0, -1)); }
+  function cardSuit(c) { return c.slice(-1); }
+  function groupBy(arr, keyFn) {
+    return arr.reduce((acc, card) => {
+      const key = keyFn(card);
+      acc[key] = acc[key] || [];
+      acc[key].push(card);
+      return acc;
+    }, {});
+  }
+
+  // Step 1: Generate all 3-partitions of the 13 cards into [4,3,3,3]
+  function generatePartitions(cards) {
+    let results = [];
+    const pick = (arr, count) => {
+      if (count === 0) return [[]];
+      if (!arr.length) return [];
+      let res = [];
+      for (let i = 0; i < arr.length; i++) {
+        const head = arr[i];
+        const tail = arr.slice(0, i).concat(arr.slice(i + 1));
+        const smaller = pick(tail, count - 1);
+        for (let s of smaller) res.push([head, ...s]);
+      }
+      return res;
+    };
+
+    const sets4 = pick(cards, 4);
+    for (let set4 of sets4) {
+      const rem1 = cards.filter(c => !set4.includes(c));
+      const sets3a = pick(rem1, 3);
+      for (let set3a of sets3a) {
+        const rem2 = rem1.filter(c => !set3a.includes(c));
+        const sets3b = pick(rem2, 3);
+        for (let set3b of sets3b) {
+          results.push([set4, set3a, set3b]);
+        }
+      }
+    }
+    return results;
+  }
+
+  function isValidSet(set) {
+    if (set.length !== 3 && set.length !== 4) return false;
+    const suits = set.map(cardSuit);
+    const values = set.map(c => c.slice(0, -1));
+    const allSameValue = new Set(values).size === 1;
+    const sameSuit = new Set(suits).size === 1;
+    const sorted = values.map(v => order.indexOf(v)).sort((a, b) => a - b);
+    const isSequence = sorted.every((v, i, arr) => i === 0 || v === arr[i - 1] + 1);
+    return allSameValue || (sameSuit && isSequence);
+  }
+
+  const sets = generatePartitions(cards);
+  for (let [a, b, c] of sets) {
+    if (isValidSet(a) && isValidSet(b) && isValidSet(c)) return true;
+  }
+  return false;
 }
+
+function declareWin() {
+  if (hand.length !== 13) return alert(\"You must have exactly 13 cards to declare.\");
+
+  if (isValidMeld(hand)) {
+    alert(\"🎉 You WON! Valid Rummy meld formed!\");
+  } else {
+    alert(\"❌ Invalid meld. You need 3 valid groups of 4-3-3 by kind or sequence.\");
+  }
+}
+
 
 function sendMessage() {
   const msg = document.getElementById('chatInput').value.trim();

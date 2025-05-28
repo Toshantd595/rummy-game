@@ -1,469 +1,427 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rummy Multiplayer</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #1a1a2e;
-      color: white;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-    }
-    h1 {
-      color: #facc15;
-      text-align: center;
-      padding: 10px;
-    }
-    input, select, button {
-      padding: 10px;
-      margin: 5px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: none;
-    }
-    button {
-      background: #facc15;
-      color: black;
-      cursor: pointer;
-    }
-    .card-img {
-      width: 60px;
-      height: 90px;
-      margin: 2px;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    .card-img:hover {
-      transform: scale(1.1);
-    }
-    .meld-selected {
-      outline: 3px solid #66ffcc;
-      transform: scale(1.1);
-    }
-    .cards {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin: 10px 0;
-    }
-    .melded-cards {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 6px;
-      padding: 8px;
-      background: #263159;
-      border-radius: 6px;
-    }
-    .chat-box {
-      text-align: center;
-      margin: 10px auto;
-      display: none;
-    }
-    .chat-bubble {
-      background: #fef08a;
-      color: #000;
-      padding: 8px 12px;
-      border-radius: 10px;
-      margin: 5px auto;
-      display: inline-block;
-      animation: fadeout 3s forwards;
-    }
-    @keyframes fadeout {
-      0% { opacity: 1; }
-      70% { opacity: 1; }
-      100% { opacity: 0; display: none; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Love Rummy</title>
+    <style>
+        :root {
+            --primary-color: #ff69b4;
+            --secondary-color: #ff1493;
+            --background-color: #fffaf0;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Playfair Display', serif;
+            background-color: var(--background-color);
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .room-section {
+            background: var(--background-color);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .player-list {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .player-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .player-item:last-child {
+            border-bottom: none;
+        }
+
+        .player-name {
+            margin-left: 10px;
+        }
+
+        .current-turn {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .deck {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            background: var(--background-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .discard-pile {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            background: var(--background-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .hand {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            padding: 20px;
+            background: var(--background-color);
+            border-radius: 10px;
+        }
+
+        .card {
+            width: 100px;
+            height: 150px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card:hover {
+            transform: scale(1.05);
+        }
+
+        .chat-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+
+        .chat-messages {
+            height: 200px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: var(--background-color);
+            border-radius: 10px;
+        }
+
+        .chat-message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .chat-input button {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .room-code {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
-<h1>Rummy Multiplayer</h1>
-<div id="lobby" style="text-align:center">
-  <div>
-    <button onclick="createGame()">Create Game</button>
-    <input type="text" id="gameCodeInput" placeholder="Enter Game Code" maxlength="6">
-    <button onclick="joinGame()">Join</button>
-  </div>
-  <div>
-    <input id="playerName" placeholder="Your name">
-    <select id="avatarSelect">
-      <option value="warrior">Avatar 1</option>
-      <option value="queen">Avatar 2</option>
-      <option value="wizard">Avatar 3</option>
-      <option value="ninja">Avatar 4</option>
-    </select>
-  </div>
-  <div id="gameCodeDisplay"></div>
-  <div id="startGameContainer" style="display:none">
-    <button onclick="startGame()">Start Game</button>
-  </div>
-</div>
+    <div class="container">
+        <div class="header">
+            <h1>💖 Love Rummy 💖</h1>
+            <p>Play rummy with your friends in a romantic setting</p>
+        </div>
 
-<div id="game" style="display:none">
-  <div class="table">
-    <div class="info-bar" id="turnInfo"></div>
+        <div class="room-section">
+            <div class="room-code" id="roomCode">Room Code: <span id="displayRoomCode"></span></div>
+            <button onclick="createRoom()" id="createRoomBtn" class="control-btn">Create Room</button>
+            <button onclick="joinRoom()" id="joinRoomBtn" class="control-btn">Join Room</button>
+        </div>
 
-    <div class="controls" id="controls" style="display:none; justify-content:center; gap:10px;">
-      <button onclick="drawCard()">Draw Card</button>
-      <button onclick="sortHand()">Sort Hand</button>
-      <button onclick="meld()">Meld</button>
-      <button onclick="declareVictory(playerName)">Declare Win</button>
-      <button onclick="resetGame()" id="startNewGameBtn" style="display:none;">🔄 Start New Game</button>
+        <div class="game-container" id="gameContainer" style="display: none;">
+            <div class="player-list">
+                <h3>Players</h3>
+                <div id="playerList"></div>
+            </div>
+
+            <div class="game-board">
+                <div class="deck">
+                    <button onclick="drawCard()" id="drawBtn" class="control-btn">Draw Card</button>
+                    <div id="deckCount"></div>
+                </div>
+
+                <div class="discard-pile">
+                    <div id="discardPile"></div>
+                </div>
+
+                <div class="hand" id="playerHand"></div>
+            </div>
+
+            <div class="chat-section">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Type your message...">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div style="margin-top:10px; text-align:center;">
-      <span>Top Discard: <img id="topDiscardImg" src="https://deckofcardsapi.com/static/img/back.png" width="60" /></span>
-    </div>
+    <script>
+        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-    <div id="handTitle" style="text-align:center; margin-top:15px;">Your Hand</div>
-    <div class="cards" id="hand"></div>
+        let socket;
+        let roomId;
+        let username;
+        let players = [];
+        let currentTurn;
+        let deck = [];
+        let discardPile = [];
+        let playerHand = [];
 
-    <h3 id="meldTitle" style="margin:10px; display:none;">Melded Cards</h3>
-    <div id="meldedArea" class="melded-cards" style="display:none;"></div>
+        function createRoom() {
+            username = prompt("Enter your name:");
+            if (!username) return;
 
-    <div class="chat-box" id="chatBox">
-      <input type="text" id="chatInput" placeholder="Say something..." onkeydown="if(event.key==='Enter') sendChat()">
-      <button onclick="sendChat()">Speak</button>
-      <div>
-        <button onclick="sendQuick('Hi queen of cards 👑')">Hi queen of cards 👑</button>
-        <button onclick="sendQuick('Nice move, love 😉')">Nice move, love 😉</button>
-        <button onclick="sendQuick('Feeling lucky?')">Feeling lucky?</button>
-        <button onclick="sendQuick('Don’t bluff me 😏')">Don’t bluff me 😏</button>
-      </div>
-      <div id="chatArea"></div>
-    </div>
-  </div>
-</div>
-<script>
-// ✅ Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
-  authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
-  databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "rummy-multiplayer-fe391",
-  storageBucket: "rummy-multiplayer-fe391.appspot.com",
-  messagingSenderId: "717212591323",
-  appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-let gameCode = "";
-let playerId = "";
-let playerName = "";
-let hasDrawn = false;
-let selectedCards = [];
-let newDrawnCard = null;
-
-function getCardImage(card) {
-  const [rank, , suit] = card.split(" ");
-  const rankMap = { A: "A", J: "J", Q: "Q", K: "K" };
-  const suitMap = { Spades: "S", Hearts: "H", Diamonds: "D", Clubs: "C" };
-  const r = rankMap[rank] || rank;
-  const s = suitMap[suit];
-  return `https://deckofcardsapi.com/static/img/${r}${s}.png`;
-}
-
-function createGame() {
-  gameCode = Math.random().toString(36).substr(2, 6).toUpperCase();
-  db.ref(`games/${gameCode}`).set({ status: "lobby" });
-  document.getElementById("gameCodeDisplay").innerText = `Game Code: ${gameCode}`;
-}
-
-function joinGame() {
-  const inputCode = document.getElementById("gameCodeInput").value.trim().toUpperCase();
-  if (!inputCode) return alert("Enter Game Code");
-  gameCode = inputCode;
-
-  playerName = document.getElementById("playerName").value.trim();
-  if (!playerName) return alert("Enter your name");
-
-  const avatar = document.getElementById("avatarSelect").value;
-
-  db.ref(`games/${gameCode}`).once("value").then(gameSnap => {
-    const game = gameSnap.val();
-    if (!game) return alert("Game not found!");
-
-    const players = game.players || {};
-    if (Object.keys(players).length >= 4) return alert("Maximum 4 players allowed");
-
-    const usedIds = Object.keys(players);
-    const nextId = usedIds.includes("player1") ? 
-                   (usedIds.includes("player2") ? 
-                    (usedIds.includes("player3") ? "player4" : "player3") 
-                    : "player2") 
-                   : "player1";
-
-    playerId = nextId;
-
-    db.ref(`games/${gameCode}/players/${nextId}`).set({
-      name: playerName,
-      avatar: avatar,
-      hand: []
-    }).then(() => {
-      document.getElementById("lobby").style.display = "none";
-      document.getElementById("game").style.display = "block";
-      listen();
-
-db.ref(`games/${gameCode}/players`).on("value", snap => {
-  const playerList = snap.val() || {};
-  if (Object.keys(playerList).length >= 2 && playerId === "player1") {
-    document.getElementById("startGameContainer").style.display = "block";
+            // Generate random room code
+            roomId = Math.random().toString(36).substring(2, 15);
+            document.getElementById('displayRoomCode').textContent = roomId;
+            
+            // Initialize game
+            initializeGame();
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('createRoomBtn').style.display = 'none';
+            document.getElementById('joinRoomBtn').style.display = 'none';
         }
-      });
-    });
-  });
-}
 
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
+        function joinRoom() {
+            username = prompt("Enter your name:");
+            if (!username) return;
 
-function startGame() {
-  const suits = ["Spades", "Hearts", "Diamonds", "Clubs"];
-  const ranks = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-  let deck = [];
-  for (let s of suits) {
-    for (let r of ranks) {
-      deck.push(`${r} of ${s}`);
-    }
-  }
-  deck = shuffle(deck);
+            roomId = prompt("Enter room code:");
+            if (!roomId) return;
 
-  db.ref(`games/${gameCode}/players`).once("value").then(playerSnap => {
-    const players = playerSnap.val();
-    const ids = Object.keys(players);
-    ids.forEach(pid => {
-      const hand = deck.splice(0, 13);
-      db.ref(`games/${gameCode}/players/${pid}/hand`).set(hand);
-    });
-    db.ref(`games/${gameCode}/deck`).set(deck);
-    db.ref(`games/${gameCode}/discard`).set(deck.pop());
-    db.ref(`games/${gameCode}/turn`).set("player1");
-    db.ref(`games/${gameCode}/status`).set("started");
-    document.getElementById("startGameContainer").style.display = "none";
-  });
-}
+            document.getElementById('displayRoomCode').textContent = roomId;
+            initializeGame();
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('createRoomBtn').style.display = 'none';
+            document.getElementById('joinRoomBtn').style.display = 'none';
+        }
 
-function drawCard() {
-  db.ref(`games/${gameCode}/turn`).once("value").then(turnSnap => {
-    if (turnSnap.val() !== playerId) return alert("Not your turn!");
-    db.ref(`games/${gameCode}/deck`).once("value").then(deckSnap => {
-      let deck = deckSnap.val();
-      if (!deck || deck.length === 0) return alert("Deck is empty");
-      const card = deck.pop();
-      newDrawnCard = card;
-      db.ref(`games/${gameCode}/deck`).set(deck);
-      db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(handSnap => {
-        let hand = handSnap.val() || [];
-        hand.push(card);
-        db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
-        hasDrawn = true;
-      });
-    });
-  });
-}
+        function initializeGame() {
+            // Initialize socket connection
+            socket = new WebSocket(`ws://${window.location.hostname}:8080`);
+            
+            socket.onopen = () => {
+                console.log('Connected to server');
+                socket.send(JSON.stringify({
+                    type: 'join',
+                    roomId,
+                    username
+                }));
+            };
 
-function sortHand() {
-  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(snap => {
-    let hand = snap.val() || [];
-    const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-    hand.sort((a, b) => {
-      const [rankA, , suitA] = a.split(" ");
-      const [rankB, , suitB] = b.split(" ");
-      const suitSort = suitA.localeCompare(suitB);
-      return suitSort !== 0 ? suitSort : rankOrder.indexOf(rankA) - rankOrder.indexOf(rankB);
-    });
-    db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
-  });
-}
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                switch (data.type) {
+                    case 'player_joined':
+                        updatePlayerList(data.players);
+                        break;
+                    case 'player_left':
+                        updatePlayerList(data.players);
+                        break;
+                    case 'game_started':
+                        startGame(data.players);
+                        break;
+                    case 'card_drawn':
+                        updateDeckCount(data.count);
+                        break;
+                    case 'card_discarded':
+                        updateDiscardPile(data.card);
+                        break;
+                    case 'next_turn':
+                        updateTurn(data.player);
+                        break;
+                    case 'chat_message':
+                        addChatMessage(data.username, data.message);
+                        break;
+                }
+            };
+        }
 
-// ✅ Remaining JavaScript Logic
-function renderHand(hand) {
-  const div = document.getElementById("hand");
-  div.innerHTML = "";
-  hand.forEach(c => {
-    const img = document.createElement("img");
-    img.className = "card-img";
-    img.src = getCardImage(c);
-    if (selectedCards.includes(c)) img.classList.add("meld-selected");
-    if (newDrawnCard === c) img.classList.add("new-card");
-    img.onclick = () => {
-      if (hasDrawn) {
-        const index = hand.indexOf(c);
-        discard(index);
-      } else {
-        toggleSelect(c);
-      }
-    };
-    div.appendChild(img);
-  });
-}
+        function drawCard() {
+            socket.send(JSON.stringify({
+                type: 'draw_card',
+                roomId
+            }));
+        }
 
-function toggleSelect(card) {
-  if (selectedCards.includes(card)) {
-    selectedCards = selectedCards.filter(c => c !== card);
-  } else {
-    selectedCards.push(card);
-  }
-  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(snap => {
-    renderHand(snap.val());
-  });
-}
+        function discardCard(card) {
+            socket.send(JSON.stringify({
+                type: 'discard_card',
+                roomId,
+                card
+            }));
+        }
 
-function discard(index) {
-  if (!hasDrawn) return alert("You must draw a card before discarding.");
-  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(h => {
-    let hand = h.val() || [];
-    const card = hand.splice(index, 1)[0];
-    db.ref(`games/${gameCode}/players/${playerId}/hand`).set(hand);
-    db.ref(`games/${gameCode}/discard`).set(card);
+        function sendMessage() {
+            const message = document.getElementById('chatInput').value;
+            if (message.trim()) {
+                socket.send(JSON.stringify({
+                    type: 'chat_message',
+                    roomId,
+                    message
+                }));
+                document.getElementById('chatInput').value = '';
+            }
+        }
 
-    db.ref(`games/${gameCode}/players`).once("value").then(p => {
-      const ids = Object.keys(p.val());
-      const next = ids[(ids.indexOf(playerId) + 1) % ids.length];
-      db.ref(`games/${gameCode}/turn`).set(next);
-    });
+        function updatePlayerList(players) {
+            const playerList = document.getElementById('playerList');
+            playerList.innerHTML = players.map(player => `
+                <div class="player-item">
+                    <div class="player-name">${player.username}</div>
+                </div>
+            `).join('');
+        }
 
-    hasDrawn = false;
-    selectedCards = [];
-    newDrawnCard = null;
-  });
-}
+        function startGame(players) {
+            // Initialize game state
+            currentTurn = players[0].username;
+            updateTurn(currentTurn);
+            
+            // Deal cards
+            playerHand = dealCards();
+            updatePlayerHand();
+        }
 
-function meld() {
-  if (selectedCards.length < 3) return alert("Select 3+ cards");
-  const suits = selectedCards.map(c => c.split(" ")[2]);
-  const ranks = selectedCards.map(c => c.split(" ")[0]);
-  const allSameRank = ranks.every(r => r === ranks[0]);
-  const allSameSuit = suits.every(s => s === suits[0]);
-  const rankOrder = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-  const sorted = selectedCards.map(c => ({ c, i: rankOrder.indexOf(c.split(" ")[0]) }))
-                              .sort((a, b) => a.i - b.i);
+        function dealCards() {
+            const hand = [];
+            for (let i = 0; i < 13; i++) {
+                hand.push(getRandomCard());
+            }
+            return hand;
+        }
 
-  let isRun = allSameSuit && sorted.every((v, i, arr) => i === 0 || v.i === arr[i - 1].i + 1);
-  let isSet = allSameRank && new Set(suits).size === selectedCards.length;
+        function getRandomCard() {
+            const suit = suits[Math.floor(Math.random() * suits.length)];
+            const value = values[Math.floor(Math.random() * values.length)];
+            return { suit, value };
+        }
 
-  if (isRun || isSet) {
-    showMeld(selectedCards);
-    db.ref(`games/${gameCode}/players/${playerId}/melds`).push(selectedCards);
-    db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(hSnap => {
-      const remaining = hSnap.val().filter(c => !selectedCards.includes(c));
-      db.ref(`games/${gameCode}/players/${playerId}/hand`).set(remaining);
-    });
-    alert("✅ Valid Meld! Now you may Declare if you've used all your cards.");
-    newDrawnCard = null;
-    selectedCards = [];
-  } else {
-    alert("❌ Invalid Meld");
-  }
-}
+        function updatePlayerHand() {
+            const handDiv = document.getElementById('playerHand');
+            handDiv.innerHTML = playerHand.map(card => `
+                <div class="card" onclick="discardCard(${JSON.stringify(card)})">
+                    <div>${card.value}</div>
+                    <div>${card.suit}</div>
+                </div>
+            `).join('');
+        }
 
-function showMeld(cards) {
-  const area = document.getElementById("meldedArea");
-  const title = document.getElementById("meldTitle");
-  area.innerHTML = "";
-  if (cards.length) {
-    title.style.display = "block";
-    area.style.display = "flex";
-  }
-  cards.forEach(c => {
-    const img = document.createElement("img");
-    img.src = getCardImage(c);
-    img.className = "card-img";
-    area.appendChild(img);
-  });
-}
+        function updateDeckCount(count) {
+            document.getElementById('deckCount').textContent = `Deck: ${count} cards`;
+        }
 
-function declareVictory(name) {
-  db.ref(`games/${gameCode}/players/${playerId}/hand`).once("value").then(snap => {
-    const hand = snap.val() || [];
-    if (hand.length > 0) return alert("❌ You must use all your cards before declaring victory.");
-    db.ref(`games/${gameCode}/status`).set("ended");
-    db.ref(`games/${gameCode}/winner`).set({ name, score: 100 });
-  });
-}
+        function updateDiscardPile(card) {
+            const discardDiv = document.getElementById('discardPile');
+            discardDiv.innerHTML = card ? `
+                <div class="card">
+                    <div>${card.value}</div>
+                    <div>${card.suit}</div>
+                </div>
+            ` : '';
+        }
 
-function resetGame() {
-  if (!confirm("Start a new game?")) return;
-  db.ref(`games/${gameCode}`).remove().then(() => location.reload());
-}
+        function updateTurn(player) {
+            currentTurn = player;
+            document.getElementById('currentTurn').textContent = `Current Turn: ${player}`;
+        }
 
-function listen() {
-  db.ref(`games/${gameCode}/status`).on("value", s => {
-    const status = s.val();
-    if (status === "started") {
-      document.getElementById("controls").style.display = "flex";
-      document.getElementById("chatBox").style.display = "block";
-    } else if (status === "ended") {
-      document.getElementById("controls").style.display = "none";
-    }
-  });
-
-  db.ref(`games/${gameCode}/players/${playerId}/hand`).on("value", s => {
-    const hand = s.val() || [];
-    renderHand(hand);
-  });
-
-  db.ref(`games/${gameCode}/discard`).on("value", snap => {
-    const val = snap.val();
-    const img = document.getElementById("topDiscardImg");
-    img.src = val && val !== "None" ? getCardImage(val) : "https://deckofcardsapi.com/static/img/back.png";
-  });
-
-  db.ref(`games/${gameCode}/turn`).on("value", s => {
-    const val = s.val();
-    const turnDiv = document.getElementById("turnInfo");
-    if (!val) return;
-    db.ref(`games/${gameCode}/players/${val}/name`).once("value").then(n => {
-      if (val === playerId) {
-        turnDiv.innerText = "🟡 Your Turn";
-      } else {
-        turnDiv.innerText = `⏳ ${n.val()}'s Turn`;
-      }
-    });
-  });
-
-  db.ref(`games/${gameCode}/winner`).on("value", snap => {
-    const winner = snap.val();
-    if (winner && winner.name) {
-      document.getElementById("turnInfo").innerText = `🎉 ${winner.name} wins the game! 🎉`;
-      if (playerId === "player1") {
-        document.getElementById("startNewGameBtn").style.display = "inline-block";
-      }
-    }
-  });
-
-  db.ref(`games/${gameCode}/chat`).on("child_added", snap => {
-    const msg = snap.val();
-    const bubble = document.createElement("div");
-    bubble.className = "chat-bubble";
-    bubble.innerText = msg;
-    document.getElementById("chatArea").appendChild(bubble);
-  });
-}
-
-function sendChat() {
-  const msg = document.getElementById("chatInput").value.trim();
-  if (!msg) return;
-  db.ref(`games/${gameCode}/chat`).push(`${playerName}: ${msg}`);
-  document.getElementById("chatInput").value = "";
-}
-
-function sendQuick(msg) {
-  db.ref(`games/${gameCode}/chat`).push(`${playerName}: ${msg}`);
-}
-</script>
-</script>
+        function addChatMessage(username, message) {
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.innerHTML += `
+                <div class="chat-message">
+                    <strong>${username}:</strong> ${message}
+                </div>
+            `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
 </body>
 </html>

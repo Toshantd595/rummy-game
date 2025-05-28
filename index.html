@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Love Rummy</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Love Rummy - Final</title>
   <style>
     body {
-      font-family: 'Playfair Display', serif;
+      font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(to bottom, #fff0f5, #ffe4e1);
       margin: 0;
       padding: 0;
@@ -24,12 +24,9 @@
       transition: transform 0.2s ease;
       margin: 5px;
     }
-    .control-btn:hover, .fun-chat-btn:hover {
-      transform: scale(1.05);
-    }
+    .control-btn:hover, .fun-chat-btn:hover { transform: scale(1.05); }
     .card {
-      width: 60px;
-      height: 90px;
+      width: 60px; height: 90px;
       background: white;
       border: 1px solid #ccc;
       border-radius: 6px;
@@ -43,181 +40,174 @@
       transform: rotate(-2deg) scale(1.1);
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
-    #voiceBtn { background-color: #7b1fa2; }
-    #playerHand {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 10px;
-    }
+    #playerHand { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
     #chatMessages {
-      height: 150px;
-      overflow-y: auto;
+      height: 150px; overflow-y: auto;
       border: 1px solid #ddd;
       margin-bottom: 10px;
-      background: #fff5f8;
-      padding: 10px;
+      background: #fff5f8; padding: 10px;
       border-radius: 8px;
     }
     .chat-message { margin: 5px 0; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>💖 Love Rummy 💖</h1>
-      <p>Play rummy with your partner & let love deal the cards!</p>
-    </div>
-
-    <div>
-      <button class="control-btn" onclick="createRoom()">Create Room</button>
-      <button class="control-btn" onclick="joinRoom()">Join Room</button>
-      <div id="roomDisplay"></div>
-    </div>
-
-    <div id="gameUI" style="display:none">
-      <div id="playerList"></div>
-      <div id="playerHand"></div>
-      <button id="drawBtn" class="control-btn" onclick="drawCard()">Draw</button>
-      <button id="declareBtn" class="control-btn" onclick="declareWin()">Declare</button>
-      <div id="deckInfo"></div>
-
-      <div id="chatMessages"></div>
-      <div>
-        <input type="text" id="chatInput" placeholder="Say something romantic...">
-        <button onclick="sendMessage()">Send</button>
-        <button id="voiceBtn" onclick="startVoiceChat()">🎤 Voice Chat</button>
-      </div>
-
-      <div>
-        <button class="fun-chat-btn" onclick="quickChat('Hi Queen of Hearts 💘')">Hi Queen of Hearts 💘</button>
-        <button class="fun-chat-btn" onclick="quickChat('Let’s shuffle into love! ♥️')">Let’s shuffle into love! ♥️</button>
-      </div>
-    </div>
+<div class="container">
+  <div class="header">
+    <h1>💖 Love Rummy 💖</h1>
+    <p>Multiplayer romance. Real Rummy rules.</p>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <div>
+    <button class="control-btn" onclick="createRoom()">Create Room</button>
+    <button class="control-btn" onclick="joinRoom()">Join Room</button>
+    <div id="roomDisplay"></div>
+  </div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
-      authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
-      databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "rummy-multiplayer-fe391",
-      storageBucket: "rummy-multiplayer-fe391.appspot.com",
-      messagingSenderId: "717212591323",
-      appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  <div id="gameUI" class="hidden">
+    <div id="playerList"></div>
+    <div id="turnIndicator"></div>
+    <button id="startGameBtn" class="control-btn hidden" onclick="startGame()">Start Game</button>
+    <div id="playerHand"></div>
+    <div id="discardPile"></div>
+    <button class="control-btn" onclick="drawCard()">Draw</button>
+    <button class="control-btn" onclick="declareWin()">Declare</button>
+    <div id="chatMessages"></div>
+    <input type="text" id="chatInput" placeholder="Say something...">
+    <button onclick="sendMessage()">Send</button>
+    <button class="fun-chat-btn" onclick="quickChat('Hi Queen of Hearts 💘')">Hi Queen of Hearts 💘</button>
+  </div>
+</div>
 
-    let roomId = '', username = '', playerId = '', hand = [];
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
+  authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
+  databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rummy-multiplayer-fe391",
+  storageBucket: "rummy-multiplayer-fe391.appspot.com",
+  messagingSenderId: "717212591323",
+  appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    function generateDeck() {
-      const suits = ['♥️','♣️','♦️','♠️'];
-      const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-      let deck = [];
-      suits.forEach(suit => {
-        values.forEach(value => {
-          deck.push(`${value}${suit}`);
-        });
-      });
-      return deck.sort(() => Math.random() - 0.5);
+let roomId = '', playerId = '', username = '', hand = [], deck = [], discard = [], currentTurn = '', players = {}; 
+
+function generateDeck() {
+  const suits = ['♥️','♣️','♦️','♠️'];
+  const values = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  let full = [];
+  suits.forEach(s => values.forEach(v => full.push(`${v}${s}`)));
+  return full.sort(() => Math.random() - 0.5);
+}
+
+function createRoom() {
+  username = prompt("Your name:");
+  roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+  playerId = `player_${Date.now()}`;
+  db.ref(`rooms/${roomId}`).set({ status: 'waiting', players: { [playerId]: username } });
+  enterRoom();
+}
+
+function joinRoom() {
+  username = prompt("Your name:");
+  roomId = prompt("Enter Room Code:");
+  playerId = `player_${Date.now()}`;
+  db.ref(`rooms/${roomId}/players/${playerId}`).set(username).then(enterRoom);
+}
+
+function enterRoom() {
+  document.getElementById('roomDisplay').innerText = `Room: ${roomId}`;
+  document.getElementById('gameUI').classList.remove('hidden');
+  db.ref(`rooms/${roomId}/players`).on('value', snap => {
+    players = snap.val() || {};
+    const list = Object.values(players).map(name => `<div>${name}</div>`).join('');
+    document.getElementById('playerList').innerHTML = list;
+    if (Object.keys(players).length >= 2 && Object.keys(players)[0] === playerId) {
+      document.getElementById('startGameBtn').classList.remove('hidden');
     }
+  });
+  db.ref(`rooms/${roomId}/chat`).on('child_added', snap => {
+    const msg = snap.val();
+    document.getElementById('chatMessages').innerHTML += `<div><strong>${msg.from}</strong>: ${msg.text}</div>`;
+  });
+  db.ref(`rooms/${roomId}/discard`).on('value', snap => {
+    const top = snap.val();
+    document.getElementById('discardPile').innerHTML = top ? `<div class='card'>${top}</div>` : '';
+  });
+  db.ref(`rooms/${roomId}/turn`).on('value', snap => {
+    currentTurn = snap.val();
+    document.getElementById('turnIndicator').innerText = (currentTurn === playerId) ? "Your turn" : `${players[currentTurn]}'s turn`;
+  });
+  db.ref(`rooms/${roomId}/hands/${playerId}`).on('value', snap => {
+    hand = snap.val() || [];
+    updateHand();
+  });
+}
 
-    function createRoom() {
-      username = prompt("Your name:");
-      if (!username) return;
-      roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-      playerId = `player_${Date.now()}`;
-      const deck = generateDeck();
-      const playerHand = deck.splice(0, 13);
-      db.ref(`rooms/${roomId}`).set({
-        players: { [playerId]: username },
-        deck: deck,
-        hands: { [playerId]: playerHand },
-        chat: {},
-        status: 'waiting'
-      });
-      enterRoom();
-    }
+function startGame() {
+  deck = generateDeck();
+  let hands = {};
+  const ids = Object.keys(players);
+  ids.forEach(pid => hands[pid] = deck.splice(0, 13));
+  db.ref(`rooms/${roomId}`).update({
+    deck,
+    hands,
+    discard: '',
+    turn: ids[0],
+    status: 'started'
+  });
+}
 
-    function joinRoom() {
-      username = prompt("Your name:");
-      roomId = prompt("Enter Room Code:");
-      playerId = `player_${Date.now()}`;
-      db.ref(`rooms/${roomId}/deck`).once('value', snapshot => {
-        let deck = snapshot.val();
-        const playerHand = deck.splice(0, 13);
-        db.ref(`rooms/${roomId}/deck`).set(deck);
-        db.ref(`rooms/${roomId}/players/${playerId}`).set(username);
-        db.ref(`rooms/${roomId}/hands/${playerId}`).set(playerHand);
-        enterRoom();
-      });
-    }
+function drawCard() {
+  if (playerId !== currentTurn) return alert("Not your turn!");
+  db.ref(`rooms/${roomId}/deck`).once('value', snap => {
+    const updatedDeck = snap.val();
+    if (!updatedDeck || updatedDeck.length === 0) return alert("Deck is empty");
+    const card = updatedDeck.shift();
+    hand.push(card);
+    db.ref(`rooms/${roomId}/deck`).set(updatedDeck);
+    db.ref(`rooms/${roomId}/hands/${playerId}`).set(hand);
+    updateHand();
+  });
+}
 
-    function enterRoom() {
-      document.getElementById('roomDisplay').innerText = `Room Code: ${roomId}`;
-      document.getElementById('gameUI').style.display = 'block';
-      db.ref(`rooms/${roomId}/players`).on('value', snapshot => {
-        const players = snapshot.val();
-        document.getElementById('playerList').innerHTML =
-          Object.values(players).map(p => `<div>${p}</div>`).join('');
-      });
+function updateHand() {
+  const div = document.getElementById('playerHand');
+  div.innerHTML = hand.map((c, i) => `<div class='card' onclick='discardCard(${i})'>${c}</div>`).join('');
+}
 
-      db.ref(`rooms/${roomId}/hands/${playerId}`).on('value', snapshot => {
-        hand = snapshot.val() || [];
-        updateHand();
-      });
+function discardCard(index) {
+  if (playerId !== currentTurn || hand.length !== 14) return alert("Draw first and discard exactly one.");
+  const card = hand.splice(index, 1)[0];
+  db.ref(`rooms/${roomId}/hands/${playerId}`).set(hand);
+  db.ref(`rooms/${roomId}/discard`).set(card);
+  const ids = Object.keys(players);
+  const nextIndex = (ids.indexOf(currentTurn) + 1) % ids.length;
+  db.ref(`rooms/${roomId}/turn`).set(ids[nextIndex]);
+  updateHand();
+}
 
-      db.ref(`rooms/${roomId}/chat`).on('child_added', snap => {
-        const msg = snap.val();
-        const chatBox = document.getElementById('chatMessages');
-        chatBox.innerHTML += `<div><strong>${msg.from}:</strong> ${msg.text}</div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
-      });
-    }
+function declareWin() {
+  if (hand.length !== 13) return alert("You must have 13 cards to declare.");
+  // Basic 3 group check placeholder (not full Rummy meld validation)
+  alert("Congratulations! You declared a win! 🎉 (Full validation coming soon)");
+}
 
-    function drawCard() {
-      db.ref(`rooms/${roomId}/deck`).once('value', snap => {
-        let deck = snap.val();
-        if (!deck || deck.length === 0) return alert("No cards left in deck!");
-        let card = deck.shift();
-        hand.push(card);
-        db.ref(`rooms/${roomId}/deck`).set(deck);
-        db.ref(`rooms/${roomId}/hands/${playerId}`).set(hand);
-        updateHand();
-      });
-    }
+function sendMessage() {
+  const msg = document.getElementById('chatInput').value.trim();
+  if (!msg) return;
+  db.ref(`rooms/${roomId}/chat`).push({ from: username, text: msg });
+  document.getElementById('chatInput').value = '';
+}
 
-    function updateHand() {
-      document.getElementById('playerHand').innerHTML = hand.map(c => `<div class="card">${c}</div>`).join('');
-    }
-
-    function declareWin() {
-      if (hand.length === 13) {
-        alert("You declared a win with 13 cards! 🎉");
-      } else {
-        alert("Invalid declaration — you must have exactly 13 cards.");
-      }
-    }
-
-    function sendMessage() {
-      const msg = document.getElementById('chatInput').value.trim();
-      if (msg) {
-        db.ref(`rooms/${roomId}/chat`).push({ from: username, text: msg });
-        document.getElementById('chatInput').value = '';
-      }
-    }
-
-    function quickChat(message) {
-      db.ref(`rooms/${roomId}/chat`).push({ from: username, text: message });
-    }
-
-    function startVoiceChat() {
-      alert("Voice chat feature coming soon! For now, use sweet messages ♥️");
-    }
-  </script>
+function quickChat(message) {
+  db.ref(`rooms/${roomId}/chat`).push({ from: username, text: message });
+}
+</script>
 </body>
 </html>

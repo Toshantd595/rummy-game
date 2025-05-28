@@ -139,6 +139,30 @@
       color: var(--secondary-color);
       margin-top: 10px;
     }
+
+    #playerHand {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .card {
+      width: 60px;
+      height: 90px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      text-align: center;
+      padding-top: 25px;
+    }
+
+    #startGameBtn {
+      display: none;
+      margin-top: 15px;
+      background: var(--secondary-color);
+    }
   </style>
 </head>
 <body>
@@ -158,9 +182,11 @@
       <div class="player-list">
         <h3>Players</h3>
         <div id="playerList"></div>
+        <button id="startGameBtn" class="control-btn">Start Game</button>
       </div>
 
       <div id="currentTurn"></div>
+      <div id="playerHand"></div>
 
       <div class="chat-section">
         <div class="chat-messages" id="chatMessages"></div>
@@ -193,11 +219,16 @@
       let roomId = '';
       let username = '';
       let playerId = '';
+      let isCreator = false;
 
       document.getElementById('createRoomBtn').onclick = createRoom;
       document.getElementById('joinRoomBtn').onclick = joinRoom;
       document.getElementById('chatInput').onkeydown = (e) => {
         if (e.key === 'Enter') sendMessage();
+      };
+
+      document.getElementById('startGameBtn').onclick = () => {
+        db.ref(`rooms/${roomId}/status`).set('started');
       };
 
       function createRoom() {
@@ -206,6 +237,7 @@
 
         roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
         playerId = `player_${Date.now()}`;
+        isCreator = true;
 
         db.ref(`rooms/${roomId}`).set({
           status: 'waiting',
@@ -225,6 +257,8 @@
         if (!roomId) return;
 
         playerId = `player_${Date.now()}`;
+        isCreator = false;
+
         const playerRef = db.ref(`rooms/${roomId}/players/${playerId}`);
         playerRef.set({ username })
           .then(() => enterGame())
@@ -240,8 +274,13 @@
         document.getElementById('createRoomBtn').style.display = 'none';
         document.getElementById('joinRoomBtn').style.display = 'none';
 
+        if (isCreator) {
+          document.getElementById('startGameBtn').style.display = 'inline-block';
+        }
+
         listenForPlayers();
         listenForMessages();
+        listenForGameStart();
       }
 
       function listenForPlayers() {
@@ -257,13 +296,31 @@
             div.innerHTML = `<div class="player-name">${player.username}</div>`;
             playerList.appendChild(div);
           }
+        });
+      }
 
-          // Show current turn as the first player who joined
-          const firstPlayerKey = Object.keys(players)[0];
-          if (players[firstPlayerKey]) {
-            document.getElementById('currentTurn').textContent = `Current Turn: ${players[firstPlayerKey].username}`;
+      function listenForGameStart() {
+        db.ref(`rooms/${roomId}/status`).on('value', (snapshot) => {
+          if (snapshot.val() === 'started') {
+            startGame();
           }
         });
+      }
+
+      function startGame() {
+        const hand = [];
+        const suits = ['♥️', '♦️', '♣️', '♠️'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        for (let i = 0; i < 13; i++) {
+          const suit = suits[Math.floor(Math.random() * suits.length)];
+          const value = values[Math.floor(Math.random() * values.length)];
+          hand.push(`${value}${suit}`);
+        }
+
+        const handDiv = document.getElementById('playerHand');
+        handDiv.innerHTML = hand.map(card => `<div class="card">${card}</div>`).join('');
+        document.getElementById('currentTurn').textContent = "Game Started!";
+        document.getElementById('startGameBtn').style.display = 'none';
       }
 
       function sendMessage() {

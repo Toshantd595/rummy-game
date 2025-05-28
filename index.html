@@ -128,13 +128,19 @@ function joinRoom() {
   roomId = prompt("Enter Room Code:");
   if (!roomId) return;
   playerId = `player_${Date.now()}`;
-  
-  db.ref(`rooms/${roomId}/players/${playerId}`).set(username).then(() => {
-    enterRoom(); // ✅ wait until player is added before setting up listeners
-  }).catch(err => {
-    alert("Invalid room code or failed to join: " + err.message);
+
+  // Check if room exists before trying to join
+  db.ref(`rooms/${roomId}`).once('value', snapshot => {
+    if (snapshot.exists()) {
+      db.ref(`rooms/${roomId}/players/${playerId}`).set(username).then(() => {
+        enterRoom(); // Set up listeners only after player is added
+      });
+    } else {
+      alert("❌ Room code not found. Please double-check.");
+    }
   });
 }
+
 
 
 function enterRoom() {

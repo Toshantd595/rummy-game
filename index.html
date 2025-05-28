@@ -112,7 +112,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let roomId = '', username = '', playerId = '', hand = [], fullDeck = [];
+    let roomId = '', username = '', playerId = '', hand = [];
 
     function generateDeck() {
       const suits = ['♥️','♣️','♦️','♠️'];
@@ -131,10 +131,12 @@
       if (!username) return;
       roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
       playerId = `player_${Date.now()}`;
-      fullDeck = generateDeck();
+      const deck = generateDeck();
+      const playerHand = deck.splice(0, 13);
       db.ref(`rooms/${roomId}`).set({
         players: { [playerId]: username },
-        deck: fullDeck,
+        deck: deck,
+        hands: { [playerId]: playerHand },
         chat: {},
         status: 'waiting'
       });
@@ -145,7 +147,14 @@
       username = prompt("Your name:");
       roomId = prompt("Enter Room Code:");
       playerId = `player_${Date.now()}`;
-      db.ref(`rooms/${roomId}/players/${playerId}`).set(username).then(enterRoom);
+      db.ref(`rooms/${roomId}/deck`).once('value', snapshot => {
+        let deck = snapshot.val();
+        const playerHand = deck.splice(0, 13);
+        db.ref(`rooms/${roomId}/deck`).set(deck);
+        db.ref(`rooms/${roomId}/players/${playerId}`).set(username);
+        db.ref(`rooms/${roomId}/hands/${playerId}`).set(playerHand);
+        enterRoom();
+      });
     }
 
     function enterRoom() {
@@ -157,10 +166,16 @@
           Object.values(players).map(p => `<div>${p}</div>`).join('');
       });
 
+      db.ref(`rooms/${roomId}/hands/${playerId}`).on('value', snapshot => {
+        hand = snapshot.val() || [];
+        updateHand();
+      });
+
       db.ref(`rooms/${roomId}/chat`).on('child_added', snap => {
         const msg = snap.val();
-        document.getElementById('chatMessages').innerHTML +=
-          `<div class="chat-message"><strong>${msg.from}:</strong> ${msg.text}</div>`;
+        const chatBox = document.getElementById('chatMessages');
+        chatBox.innerHTML += `<div><strong>${msg.from}:</strong> ${msg.text}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
       });
     }
 
@@ -171,6 +186,7 @@
         let card = deck.shift();
         hand.push(card);
         db.ref(`rooms/${roomId}/deck`).set(deck);
+        db.ref(`rooms/${roomId}/hands/${playerId}`).set(hand);
         updateHand();
       });
     }

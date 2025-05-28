@@ -107,18 +107,35 @@ function generateDeck() {
 
 function createRoom() {
   username = prompt("Your name:");
+  if (!username) return;
   roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
   playerId = `player_${Date.now()}`;
-  db.ref(`rooms/${roomId}`).set({ status: 'waiting', players: { [playerId]: username } });
-  enterRoom();
+  
+  db.ref(`rooms/${roomId}`).set({
+    status: 'waiting',
+    players: { [playerId]: username }
+  }).then(() => {
+    enterRoom(); // ✅ only after Firebase has written data
+  }).catch(err => {
+    alert("Error creating room: " + err.message);
+  });
 }
+
 
 function joinRoom() {
   username = prompt("Your name:");
+  if (!username) return;
   roomId = prompt("Enter Room Code:");
+  if (!roomId) return;
   playerId = `player_${Date.now()}`;
-  db.ref(`rooms/${roomId}/players/${playerId}`).set(username).then(enterRoom);
+  
+  db.ref(`rooms/${roomId}/players/${playerId}`).set(username).then(() => {
+    enterRoom(); // ✅ wait until player is added before setting up listeners
+  }).catch(err => {
+    alert("Invalid room code or failed to join: " + err.message);
+  });
 }
+
 
 function enterRoom() {
   document.getElementById('roomDisplay').innerText = `Room: ${roomId}`;

@@ -1,115 +1,301 @@
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script>
-  // Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
-    authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
-    databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "rummy-multiplayer-fe391",
-    storageBucket: "rummy-multiplayer-fe391.appspot.com",
-    messagingSenderId: "717212591323",
-    appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
-  };
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Love Rummy</title>
+  <style>
+    :root {
+      --primary-color: #ff69b4;
+      --secondary-color: #ff1493;
+      --background-color: #fffaf0;
+    }
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+    body {
+      margin: 0;
+      font-family: 'Playfair Display', serif;
+      background-color: var(--background-color);
+      color: #333;
+    }
 
-  let roomId = '';
-  let username = '';
-  let playerId = '';
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
 
-  function createRoom() {
-    username = prompt("Enter your name:");
-    if (!username) return;
+    .game-container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+      display: none;
+    }
 
-    roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-    playerId = `player_${Date.now()}`;
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-    db.ref(`rooms/${roomId}`).set({
-      status: 'waiting',
-      players: {
-        [playerId]: { username }
-      }
-    });
+    .header h1 {
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
 
-    enterGame();
-  }
+    .room-section {
+      background: var(--background-color);
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
 
-  function joinRoom() {
-    username = prompt("Enter your name:");
-    if (!username) return;
+    .player-list {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
 
-    roomId = prompt("Enter room code:");
-    if (!roomId) return;
+    .player-item {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
 
-    playerId = `player_${Date.now()}`;
-    const playerRef = db.ref(`rooms/${roomId}/players/${playerId}`);
-    playerRef.set({ username })
-      .then(() => {
+    .player-item:last-child {
+      border-bottom: none;
+    }
+
+    .player-name {
+      margin-left: 10px;
+    }
+
+    .chat-section {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 30px;
+    }
+
+    .chat-messages {
+      height: 200px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      padding: 10px;
+      background: var(--background-color);
+      border-radius: 10px;
+    }
+
+    .chat-message {
+      margin-bottom: 10px;
+      padding: 8px;
+      border-radius: 5px;
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .chat-input button {
+      padding: 10px 20px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .control-btn {
+      padding: 10px 20px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    .room-code {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
+
+    #currentTurn {
+      text-align: center;
+      font-weight: bold;
+      color: var(--secondary-color);
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💖 Love Rummy 💖</h1>
+      <p>Play rummy with your friends in a romantic setting</p>
+    </div>
+
+    <div class="room-section">
+      <div class="room-code">Room Code: <span id="displayRoomCode"></span></div>
+      <button id="createRoomBtn" class="control-btn">Create Room</button>
+      <button id="joinRoomBtn" class="control-btn">Join Room</button>
+    </div>
+
+    <div class="game-container" id="gameContainer">
+      <div class="player-list">
+        <h3>Players</h3>
+        <div id="playerList"></div>
+      </div>
+
+      <div id="currentTurn"></div>
+
+      <div class="chat-section">
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input">
+          <input type="text" id="chatInput" placeholder="Type your message..." />
+          <button onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    window.onload = function () {
+      const firebaseConfig = {
+        apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
+        authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
+        databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "rummy-multiplayer-fe391",
+        storageBucket: "rummy-multiplayer-fe391.appspot.com",
+        messagingSenderId: "717212591323",
+        appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      let roomId = '';
+      let username = '';
+      let playerId = '';
+
+      document.getElementById('createRoomBtn').onclick = createRoom;
+      document.getElementById('joinRoomBtn').onclick = joinRoom;
+      document.getElementById('chatInput').onkeydown = (e) => {
+        if (e.key === 'Enter') sendMessage();
+      };
+
+      function createRoom() {
+        username = prompt("Enter your name:");
+        if (!username) return;
+
+        roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        playerId = `player_${Date.now()}`;
+
+        db.ref(`rooms/${roomId}`).set({
+          status: 'waiting',
+          players: {
+            [playerId]: { username }
+          }
+        });
+
         enterGame();
-      })
-      .catch((error) => {
-        alert("Room not found or could not join.");
-        console.error(error);
-      });
-  }
-
-  function enterGame() {
-    document.getElementById('displayRoomCode').textContent = roomId;
-    document.getElementById('gameContainer').style.display = 'block';
-    document.getElementById('createRoomBtn').style.display = 'none';
-    document.getElementById('joinRoomBtn').style.display = 'none';
-
-    listenForPlayers();
-    listenForMessages();
-  }
-
-  function listenForPlayers() {
-    db.ref(`rooms/${roomId}/players`).on('value', (snapshot) => {
-      const players = snapshot.val();
-      const playerList = document.getElementById('playerList');
-      playerList.innerHTML = '';
-
-      for (const key in players) {
-        const player = players[key];
-        const div = document.createElement('div');
-        div.className = 'player-item';
-        div.innerHTML = `<div class="player-name">${player.username}</div>`;
-        playerList.appendChild(div);
       }
-    });
-  }
 
-  function sendMessage() {
-    const message = document.getElementById('chatInput').value.trim();
-    if (!message) return;
+      function joinRoom() {
+        username = prompt("Enter your name:");
+        if (!username) return;
 
-    const chatRef = db.ref(`rooms/${roomId}/chat`).push();
-    chatRef.set({
-      sender: username,
-      message,
-      timestamp: Date.now()
-    });
-    document.getElementById('chatInput').value = '';
-  }
+        roomId = prompt("Enter room code:");
+        if (!roomId) return;
 
-  function listenForMessages() {
-    const chatRef = db.ref(`rooms/${roomId}/chat`);
-    chatRef.on('child_added', (snapshot) => {
-      const data = snapshot.val();
-      addChatMessage(data.sender, data.message);
-    });
-  }
+        playerId = `player_${Date.now()}`;
+        const playerRef = db.ref(`rooms/${roomId}/players/${playerId}`);
+        playerRef.set({ username })
+          .then(() => enterGame())
+          .catch((error) => {
+            alert("Room not found or could not join.");
+            console.error(error);
+          });
+      }
 
-  function addChatMessage(sender, message) {
-    const chatBox = document.getElementById('chatMessages');
-    const div = document.createElement('div');
-    div.className = 'chat-message';
-    div.innerHTML = `<strong>${sender}:</strong> ${message}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-</script>
+      function enterGame() {
+        document.getElementById('displayRoomCode').textContent = roomId;
+        document.getElementById('gameContainer').style.display = 'block';
+        document.getElementById('createRoomBtn').style.display = 'none';
+        document.getElementById('joinRoomBtn').style.display = 'none';
+
+        listenForPlayers();
+        listenForMessages();
+      }
+
+      function listenForPlayers() {
+        db.ref(`rooms/${roomId}/players`).on('value', (snapshot) => {
+          const players = snapshot.val();
+          const playerList = document.getElementById('playerList');
+          playerList.innerHTML = '';
+
+          for (const key in players) {
+            const player = players[key];
+            const div = document.createElement('div');
+            div.className = 'player-item';
+            div.innerHTML = `<div class="player-name">${player.username}</div>`;
+            playerList.appendChild(div);
+          }
+
+          // Show current turn as the first player who joined
+          const firstPlayerKey = Object.keys(players)[0];
+          if (players[firstPlayerKey]) {
+            document.getElementById('currentTurn').textContent = `Current Turn: ${players[firstPlayerKey].username}`;
+          }
+        });
+      }
+
+      function sendMessage() {
+        const message = document.getElementById('chatInput').value.trim();
+        if (!message) return;
+
+        const chatRef = db.ref(`rooms/${roomId}/chat`).push();
+        chatRef.set({
+          sender: username,
+          message,
+          timestamp: Date.now()
+        });
+        document.getElementById('chatInput').value = '';
+      }
+
+      function listenForMessages() {
+        const chatRef = db.ref(`rooms/${roomId}/chat`);
+        chatRef.on('child_added', (snapshot) => {
+          const data = snapshot.val();
+          addChatMessage(data.sender, data.message);
+        });
+      }
+
+      function addChatMessage(sender, message) {
+        const chatBox = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'chat-message';
+        div.innerHTML = `<strong>${sender}:</strong> ${message}`;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    };
+  </script>
+</body>
+</html>

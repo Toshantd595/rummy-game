@@ -88,10 +88,11 @@ const firebaseConfig = {
   authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
   databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "rummy-multiplayer-fe391",
-  storageBucket: "rummy-multiplayer-fe391.appspot.com",
+  storageBucket: "rummy-multiplayer-fe391.appspot.com", // ✅ fixed
   messagingSenderId: "717212591323",
   appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 

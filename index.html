@@ -129,6 +129,7 @@
       const [turn, setTurn] = useState(null);
       const [message, setMessage] = useState("");
       const [winner, setWinner] = useState(null);
+      const [meldedCards, setMeldedCards] = useState([]);
 
       function drawCard() {
         if (turn !== playerId) return;
@@ -143,7 +144,7 @@
       }
 
       function discardCard(card) {
-        if (turn !== playerId) return;
+        if (turn !== playerId || !card) return;
         const newHand = hand.filter(c => c !== card);
         db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
         db.ref(`rooms/${room}/discard`).set(card);
@@ -156,6 +157,7 @@
         if (isValidMeld(selected)) {
           setMessage("✅ Valid meld!");
           const newHand = hand.filter(c => !selected.includes(c));
+          setMeldedCards(prev => [...prev, ...selected]);
           db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
           setSelected([]);
         } else {
@@ -164,10 +166,11 @@
       }
 
       function declareWin() {
-        if (hand.length === 0) {
+        const unmelded = hand.filter(c => !meldedCards.includes(c));
+        if (unmelded.length === 0 && hand.length === 0) {
           db.ref(`rooms/${room}/winner`).set(playerId);
         } else {
-          setMessage("❌ Meld all cards first!");
+          setMessage("❌ Meld all cards before declaring win!");
         }
       }
 
@@ -189,6 +192,7 @@
         });
         setPlayerId(newPlayers[Math.floor(Math.random()*2)]);
         setPlayers(newPlayers);
+        setMeldedCards([]);
       }
 
       useEffect(() => {

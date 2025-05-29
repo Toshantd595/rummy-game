@@ -30,9 +30,6 @@
             rose: { 500: "#f43f5e", 700: "#be123c" },
             pink: { 500: "#ec4899", 600: "#db2777" },
           },
-          animation: {
-            pulseHeart: "pulse 2s infinite",
-          },
         },
       },
     };
@@ -43,25 +40,37 @@
       background: linear-gradient(to bottom right, #fdf2f8, #fce7f3, #fbcfe8);
       font-family: 'Segoe UI', sans-serif;
     }
-    .love-gradient {
-      background: linear-gradient(to right, #f472b6, #fb7185, #f472b6);
-    }
     .card {
-      width: 40px;
-      height: 60px;
+      width: 50px;
+      height: 70px;
       border-radius: 6px;
-      text-align: center;
-      padding-top: 12px;
-      font-size: 18px;
-      font-weight: bold;
-      background-color: white;
+      background: white;
       border: 2px solid #fb7185;
-      margin: 2px;
-      box-shadow: 1px 1px 4px rgba(0,0,0,0.2);
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 4px;
+      box-shadow: 1px 1px 5px rgba(0,0,0,0.1);
+      cursor: pointer;
     }
     .selected {
       transform: translateY(-10px);
       border-color: #db2777;
+    }
+    .card-back {
+      width: 50px;
+      height: 70px;
+      border-radius: 6px;
+      background: repeating-linear-gradient(
+        45deg,
+        #fb7185,
+        #fb7185 5px,
+        #fbcfe8 5px,
+        #fbcfe8 10px
+      );
+      border: 2px solid #be123c;
+      margin: 4px;
     }
   </style>
 </head>
@@ -96,18 +105,6 @@
       return deck.sort(() => Math.random() - 0.5);
     }
 
-    function isValidMeld(cards) {
-      // Example: sequence check for same suit
-      if (cards.length < 3) return false;
-      const suits = cards.map(c => c.slice(-1));
-      const values = cards.map(c => c.slice(0, -1));
-      const allSameSuit = suits.every(s => s === suits[0]);
-      const valueMap = {A:1, J:11, Q:12, K:13};
-      const nums = values.map(v => valueMap[v] || parseInt(v)).sort((a,b)=>a-b);
-      const isSequence = nums.every((n, i) => i === 0 || n === nums[i-1] + 1);
-      return allSameSuit && isSequence;
-    }
-
     function App() {
       const [room, setRoom] = useState(null);
       const [playerId, setPlayerId] = useState(null);
@@ -115,111 +112,132 @@
       const [hand, setHand] = useState([]);
       const [selected, setSelected] = useState([]);
       const [turn, setTurn] = useState(null);
+      const [deck, setDeck] = useState([]);
+      const [opponentCards, setOpponentCards] = useState(0);
+      const [hasDrawn, setHasDrawn] = useState(false);
       const [message, setMessage] = useState("");
+      const [roomInput, setRoomInput] = useState("");
 
-
-
-
-
-      
-      function drawCard() {
-        if (turn !== playerId) return;
-        const deckRef = db.ref(`rooms/${room}/deck`);
-        deckRef.once("value", snap => {
-          const deck = snap.val() || [];
-          const drawn = deck.pop();
-          setHand(prev => [...prev, drawn]);
-          deckRef.set(deck);
-        });
-      }
-
-      function discardCard(card) {
-        if (turn !== playerId) return;
-        setHand(prev => prev.filter(c => c !== card));
-        db.ref(`rooms/${room}/discard`).set(card);
-        db.ref(`rooms/${room}/turn`).set(players.find(p => p !== playerId));
-      }
-
-      function meld() {
-        if (isValidMeld(selected)) {
-          setMessage("✅ Valid meld!");
-          setSelected([]);
-        } else {
-          setMessage("❌ Invalid meld!");
-        }
-      }
-
-      function declareWin() {
-        if (hand.length === 0) {
-          db.ref(`rooms/${room}/winner`).set(playerId);
-        } else {
-          setMessage("❌ Meld all cards first!");
-        }
-      }
-
-      function resetGame() {
-        const newDeck = generateDeck();
-        const split = Math.floor(newDeck.length / 2);
-        const hands = {
-          player1: newDeck.slice(0, 13),
-          player2: newDeck.slice(13, 26),
-        };
-        db.ref(`rooms/${room}`).set({
-          deck: newDeck.slice(26),
-          players: players,
-          turn: players[0],
-          hands,
-          discard: null,
-          winner: null,
-        });
-      }
-
-      useEffect(() => {
-        const hash = window.location.hash.slice(1);
-        if (!hash) return;
-        setRoom(hash);
+      const joinRoom = (code) => {
         const id = Math.random().toString(36).slice(2, 7);
         setPlayerId(id);
-        const playerRef = db.ref(`rooms/${hash}/players`);
-        playerRef.once("value", snap => {
-          const existing = snap.val() || [];
-          if (!existing.includes(id)) {
-            playerRef.set([...existing, id]);
+        setRoom(code);
+
+        const roomRef = db.ref(`rooms/${code}`);
+        roomRef.once("value", snap => {
+          const data = snap.val();
+          const updatedPlayers = data?.players || [];
+          if (!updatedPlayers.includes(id)) {
+            db.ref(`rooms/${code}/players`).set([...updatedPlayers, id]);
           }
-          setPlayers([...existing, id]);
+          setPlayers([...updatedPlayers, id]);
         });
-        db.ref(`rooms/${hash}/hands/${id}`).on("value", snap => {
+
+        db.ref(`rooms/${code}/hands/${id}`).on("value", snap => {
           if (snap.exists()) setHand(snap.val());
         });
-        db.ref(`rooms/${hash}/turn`).on("value", snap => {
+        db.ref(`rooms/${code}/turn`).on("value", snap => {
           if (snap.exists()) setTurn(snap.val());
         });
-      }, []);
+        db.ref(`rooms/${code}/deck`).on("value", snap => {
+          if (snap.exists()) setDeck(snap.val());
+        });
+      };
+
+      const createRoom = () => {
+        const newCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+        joinRoom(newCode);
+        const fullDeck = generateDeck();
+        const p1 = playerId || Math.random().toString(36).slice(2, 7);
+        const p2 = Math.random().toString(36).slice(2, 7);
+        const initial = {
+          players: [p1],
+          deck: fullDeck.slice(26),
+          hands: {
+            [p1]: fullDeck.slice(0, 13),
+          },
+          turn: p1,
+          discard: null,
+        };
+        db.ref(`rooms/${newCode}`).set(initial);
+        window.location.hash = newCode;
+      };
+
+      const drawCard = () => {
+        if (turn !== playerId || hasDrawn) return;
+        const topCard = deck.pop();
+        db.ref(`rooms/${room}/hands/${playerId}`).set([...hand, topCard]);
+        db.ref(`rooms/${room}/deck`).set(deck);
+        setHasDrawn(true);
+      };
+
+      const discardCard = (card) => {
+        if (turn !== playerId || !hasDrawn) return;
+        const newHand = hand.filter(c => c !== card);
+        db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
+        const nextPlayer = players.find(p => p !== playerId);
+        db.ref(`rooms/${room}/turn`).set(nextPlayer);
+        setHasDrawn(false);
+        setSelected([]);
+      };
+
+      useEffect(() => {
+        if (!room) return;
+        db.ref(`rooms/${room}/players`).on("value", snap => {
+          const arr = snap.val() || [];
+          setPlayers(arr);
+          const opp = arr.find(p => p !== playerId);
+          if (opp) {
+            db.ref(`rooms/${room}/hands/${opp}`).on("value", snap => {
+              setOpponentCards(snap.val()?.length || 0);
+            });
+          }
+        });
+      }, [room]);
 
       return (
         <div className="p-4 text-center">
-          <h1 className="text-3xl font-bold love-gradient text-transparent bg-clip-text mb-4">💖 Love Rummy</h1>
+          <h1 className="text-3xl font-bold text-rose-600 mb-4">💖 Love Rummy</h1>
+
           {!room && (
-            <button
-              onClick={() => {
-                const newRoom = Math.random().toString(36).substr(2, 6).toUpperCase();
-                setRoom(newRoom);
-                window.location.hash = newRoom;
-                resetGame();
-              }}
-              className="bg-pink-500 text-white px-6 py-3 rounded-lg shadow"
-            >
-              Create Room
-            </button>
+            <div className="space-y-4">
+              <button onClick={createRoom} className="px-6 py-3 bg-pink-500 text-white rounded-lg shadow">
+                Create Room
+              </button>
+              <div className="flex justify-center gap-2">
+                <input
+                  value={roomInput}
+                  onChange={e => setRoomInput(e.target.value)}
+                  className="border px-4 py-2 rounded"
+                  placeholder="Enter Room Code"
+                />
+                <button
+                  onClick={() => joinRoom(roomInput)}
+                  className="bg-green-500 text-white px-4 py-2 rounded"
+                >
+                  Join
+                </button>
+              </div>
+            </div>
           )}
+
           {room && (
             <>
-              <h2 className="text-lg text-pink-700">Room: {room}</h2>
-              <h3 className="mb-2 text-rose-500">{turn === playerId ? "🎯 Your Turn" : "Waiting..."}</h3>
+              <h2 className="text-lg text-pink-700 mb-1">Room: {room}</h2>
+              <p className="text-sm text-gray-600 mb-2">
+                {turn === playerId ? "🎯 Your Turn" : "Waiting..."}
+              </p>
+
+              <div className="flex justify-center mb-2">
+                {[...Array(opponentCards)].map((_, i) => (
+                  <div key={i} className="card-back"></div>
+                ))}
+              </div>
+
               <div className="flex flex-wrap justify-center mb-4">
-                {hand.map(card => (
+                {hand.map((card, idx) => (
                   <div
-                    key={card}
+                    key={idx}
                     className={`card ${selected.includes(card) ? "selected" : ""}`}
                     onClick={() =>
                       setSelected(prev =>
@@ -233,23 +251,19 @@
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap justify-center gap-2">
+
+              <div className="flex justify-center gap-2">
                 <button onClick={drawCard} className="bg-purple-500 text-white px-4 py-2 rounded">
                   Draw
                 </button>
-                <button onClick={() => discardCard(selected[0])} className="bg-rose-500 text-white px-4 py-2 rounded">
+                <button
+                  onClick={() => selected[0] && discardCard(selected[0])}
+                  className="bg-rose-500 text-white px-4 py-2 rounded"
+                >
                   Discard
                 </button>
-                <button onClick={meld} className="bg-yellow-500 text-white px-4 py-2 rounded">
-                  Meld
-                </button>
-                <button onClick={declareWin} className="bg-green-500 text-white px-4 py-2 rounded">
-                  Declare
-                </button>
-                <button onClick={resetGame} className="bg-gray-400 text-white px-4 py-2 rounded">
-                  Restart
-                </button>
               </div>
+
               <p className="mt-4 text-pink-600">{message}</p>
             </>
           )}

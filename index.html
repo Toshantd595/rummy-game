@@ -1,1258 +1,901 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hearts & Cards - Love Gin Rummy</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Georgia', serif;
-            background: linear-gradient(45deg, #ff6b9d, #ffc371, #ff9999, #ffb3ba);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-            min-height: 100vh;
-            color: #fff;
-            overflow-x: hidden;
-        }
-
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .header h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            color: #fff;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
-        }
-
-        .header .subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            font-style: italic;
-        }
-
-        .game-board {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .game-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding: 15px;
-            background: linear-gradient(135deg, #ff9a9e, #fecfef);
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .player-info {
-            text-align: center;
-            color: #fff;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-        }
-
-        .player-info h3 {
-            font-size: 1.3rem;
-            margin-bottom: 5px;
-        }
-
-        .score {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #ff1744;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
-        }
-
-        .game-status {
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #e91e63;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
-        }
-
-        .cards-area {
-            margin-bottom: 30px;
-        }
-
-        .discard-draw-pile {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            margin-bottom: 30px;
-        }
-
-        .pile {
-            text-align: center;
-        }
-
-        .pile h4 {
-            margin-bottom: 10px;
-            color: #e91e63;
-            font-size: 1.1rem;
-        }
-
-        .card {
-            width: 80px;
-            height: 120px;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: bold;
-            font-size: 0.9rem;
-            position: relative;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        .card:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        }
-
-        .card.red {
-            background: linear-gradient(135deg, #ff6b9d, #ff8a9b);
-            color: #fff;
-            border: 2px solid #ff1744;
-        }
-
-        .card.black {
-            background: linear-gradient(135deg, #333, #555);
-            color: #fff;
-            border: 2px solid #000;
-        }
-
-        .card.back {
-            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
-            color: #e91e63;
-            border: 2px solid #ff6b9d;
-            font-size: 2rem;
-        }
-
-        .card.selected {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 30px rgba(255, 23, 68, 0.4);
-            border-color: #ff1744;
-        }
-
-        .hand {
-            margin-bottom: 20px;
-        }
-
-        .hand h4 {
-            margin-bottom: 15px;
-            color: #e91e63;
-            font-size: 1.3rem;
-            text-align: center;
-        }
-
-        .hand-cards {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            min-height: 140px;
-            padding: 10px;
-            background: linear-gradient(135deg, #ffeef1, #fff5f5);
-            border-radius: 15px;
-            border: 2px dashed #ff6b9d;
-        }
-
-        .meld-area {
-            margin-bottom: 20px;
-        }
-
-        .meld-area h4 {
-            margin-bottom: 15px;
-            color: #e91e63;
-            font-size: 1.3rem;
-            text-align: center;
-        }
-
-        .melds {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            min-height: 100px;
-            padding: 15px;
-            background: linear-gradient(135deg, #e8f5e8, #f0fff0);
-            border-radius: 15px;
-            border: 2px dashed #4caf50;
-        }
-
-        .meld {
-            display: flex;
-            gap: 5px;
-            padding: 10px;
-            background: rgba(76, 175, 80, 0.1);
-            border-radius: 10px;
-            border: 1px solid #4caf50;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            color: #fff;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #ff6b9d, #ff1744);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
-            color: #e91e63;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #4caf50, #81c784);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            backdrop-filter: blur(5px);
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #fff, #ffeef1);
-            margin: 10% auto;
-            padding: 30px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            color: #333;
-        }
-
-        .modal h2 {
-            color: #e91e63;
-            margin-bottom: 20px;
-            font-size: 2rem;
-        }
-
-        .modal input {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: 2px solid #ff6b9d;
-            border-radius: 10px;
-            font-size: 1rem;
-            background: #fff;
-        }
-
-        .modal input:focus {
-            outline: none;
-            border-color: #ff1744;
-            box-shadow: 0 0 10px rgba(255, 23, 68, 0.3);
-        }
-
-        .rules {
-            text-align: left;
-            margin: 20px 0;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 15px;
-            border-left: 5px solid #ff6b9d;
-        }
-
-        .rules h4 {
-            color: #e91e63;
-            margin-bottom: 10px;
-        }
-
-        .rules ul {
-            margin-left: 20px;
-            line-height: 1.6;
-        }
-
-        .love-hearts {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .heart {
-            position: absolute;
-            font-size: 20px;
-            color: rgba(255, 255, 255, 0.7);
-            animation: float 6s infinite ease-in-out;
-            user-select: none;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
-        }
-
-        .waiting-room {
-            text-align: center;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            margin: 20px 0;
-        }
-
-        .waiting-room h3 {
-            color: #e91e63;
-            margin-bottom: 20px;
-            font-size: 1.8rem;
-        }
-
-        .room-code {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #ff1744;
-            background: #fff;
-            padding: 15px 30px;
-            border-radius: 15px;
-            border: 3px solid #ff6b9d;
-            display: inline-block;
-            margin: 20px 0;
-            letter-spacing: 3px;
-        }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-
-            .game-info {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .discard-draw-pile {
-                gap: 20px;
-            }
-
-            .card {
-                width: 60px;
-                height: 90px;
-                font-size: 0.8rem;
-            }
-
-            .hand-cards {
-                gap: 5px;
-            }
-
-            .controls {
-                gap: 10px;
-            }
-
-            .btn {
-                padding: 10px 20px;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Love Themed Gin Rummy Multiplayer</title>
+<style>
+  /* Basic love-themed styling */
+  body {
+    background: linear-gradient(135deg, #fceabb, #f8b500);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #800000;
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  header {
+    background: #ff4d6d;
+    width: 100%;
+    padding: 1rem;
+    text-align: center;
+    color: white;
+    font-size: 2rem;
+    font-weight: bold;
+    font-family: 'Cursive', cursive;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  }
+  #lobby, #game {
+    margin-top: 1rem;
+    width: 90vw;
+    max-width: 900px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  #player-hand, #opponent-hand, #melds {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.5rem;
+    border: 1px solid #f8b500;
+    border-radius: 10px;
+    background: #fff0f0;
+  }
+  .card {
+    width: 60px;
+    height: 90px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 5px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #800000;
+    position: relative;
+  }
+  .card.red {
+    color: #d22;
+  }
+  .card .top-left, .card .bottom-right {
+    font-size: 1rem;
+  }
+  .card .suit {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  .card.selected {
+    outline: 3px solid #ff4d6d;
+    outline-offset: -3px;
+  }
+  #deck, #discard {
+    width: 70px;
+    height: 100px;
+    border-radius: 10px;
+    background: #f8b500;
+    box-shadow: inset 0 0 10px #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #800000;
+    cursor: pointer;
+    user-select: none;
+  }
+  #controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  button {
+    background: #ff4d6d;
+    border: none;
+    color: white;
+    padding: 0.7rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    transition: background 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background: #d43a58;
+  }
+  button:disabled {
+    background: #ffa3b1;
+    cursor: not-allowed;
+  }
+  #messages {
+    min-height: 2rem;
+    font-weight: bold;
+    text-align: center;
+  }
+  #scoreboard {
+    display: flex;
+    justify-content: space-around;
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+  /* Love theme hearts */
+  .heart {
+    color: #ff4d6d;
+    font-size: 1.2rem;
+    margin-left: 0.3rem;
+  }
+  #melds {
+    flex-wrap: wrap;
+  }
+  #melds strong {
+    width: 100%;
+    margin-bottom: 0.3rem;
+  }
+  #room-info {
+    font-weight: bold;
+    text-align: center;
+  }
+  #lobby input, #lobby button {
+    font-size: 1rem;
+    padding: 0.5rem;
+  }
+  #meld-selection {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #800000;
+  }
+</style>
 </head>
 <body>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <!-- Game Script - Define ALL functions FIRST -->
-    <script>
-        // Global variables
-        var gameState = {
-            currentPlayer: null,
-            playerName: '',
-            roomCode: '',
-            isPlayerOne: false,
-            gameData: null,
-            selectedCards: [],
-            hasDrawn: false
-        };
-        var database;
+<header>❤️ Love Themed Gin Rummy Multiplayer ❤️</header>
 
-        // IMMEDIATELY define ALL onclick functions
-        function showWelcome() {
-            document.getElementById('welcomeModal').style.display = 'block';
-            document.getElementById('createRoomModal').style.display = 'none';
-            document.getElementById('joinRoomModal').style.display = 'none';
-        }
+<div id="lobby">
+  <h2>Create or Join Room</h2>
+  <input type="text" id="room-id-input" placeholder="Enter Room ID (e.g. ABC123)" maxlength="6" style="text-transform: uppercase;" />
+  <button id="btn-join-room">Join Room</button>
+  <button id="btn-create-room">Create Room</button>
+  <div id="lobby-message" style="margin-top: 1rem; font-weight: bold; color: #800000;"></div>
+</div>
 
-        function showCreateRoom() {
-            document.getElementById('welcomeModal').style.display = 'none';
-            document.getElementById('createRoomModal').style.display = 'block';
-            setTimeout(() => {
-                try { document.getElementById('playerName').focus(); } catch(e) {}
-            }, 100);
-        }
+<div id="game" style="display:none;">
+  <div id="room-info">Room: <span id="room-id-display"></span></div>
+  <div id="scoreboard">
+    <div>You: <span id="player-score">0</span> <span class="heart">♥</span></div>
+    <div>Opponent: <span id="opponent-score">0</span> <span class="heart">♥</span></div>
+  </div>
 
-        function showJoinRoom() {
-            document.getElementById('welcomeModal').style.display = 'none';
-            document.getElementById('joinRoomModal').style.display = 'block';
-            setTimeout(() => {
-                try { document.getElementById('joinPlayerName').focus(); } catch(e) {}
-            }, 100);
-        }
+  <div>
+    <strong>Opponent's Hand</strong>
+    <div id="opponent-hand"></div>
+  </div>
 
-        function createRoom() {
-            const playerName = document.getElementById('playerName').value.trim();
-            if (!playerName) {
-                alert('Please enter your name! 💕');
-                return;
-            }
+  <div style="display:flex; justify-content:center; gap: 1rem; margin: 1rem 0;">
+    <div>
+      <div id="deck" title="Draw Pile">Deck</div>
+      <small>Draw Pile</small>
+    </div>
+    <div>
+      <div id="discard" title="Discard Pile">Discard</div>
+      <small>Discard Pile</small>
+    </div>
+  </div>
 
-            if (!database) {
-                alert('Game is still loading, please wait! 💕');
-                return;
-            }
+  <div>
+    <strong>Your Hand</strong>
+    <div id="player-hand"></div>
+  </div>
 
-            gameState.playerName = playerName;
-            gameState.roomCode = generateRoomCode();
-            gameState.isPlayerOne = true;
+  <div id="melds">
+    <strong>Your Melds (Click cards to select/deselect for meld):</strong>
+    <div id="meld-selection"></div>
+    <button id="btn-create-meld" disabled>Create Meld</button>
+    <div id="your-melds-list" style="margin-top: 0.5rem;"></div>
+  </div>
 
-            const roomRef = database.ref('rooms/' + gameState.roomCode);
-            const initialGameData = {
-                players: {
-                    player1: { name: playerName, score: 0, ready: true },
-                    player2: null
-                },
-                gameStarted: false,
-                currentTurn: 1,
-                deck: createDeck(),
-                discardPile: [],
-                hands: { player1: [], player2: [] },
-                melds: { player1: [], player2: [] },
-                round: 1,
-                winner: null
-            };
+  <div id="controls">
+    <button id="btn-draw" disabled>Draw Card</button>
+    <button id="btn-knock" disabled>Knock</button>
+    <button id="btn-gin" disabled>Go Gin</button>
+    <button id="btn-discard" disabled>Discard Selected Card</button>
+    <button id="btn-leave-room" style="background:#800000;">Leave Room</button>
+  </div>
 
-            roomRef.set(initialGameData).then(() => {
-                document.getElementById('createRoomModal').style.display = 'none';
-                document.getElementById('waitingRoom').style.display = 'block';
-                document.getElementById('displayRoomCode').textContent = gameState.roomCode;
-                roomRef.on('value', handleGameUpdate);
-            }).catch(error => {
-                console.error('Error creating room:', error);
-                alert('Failed to create room. Please try again! 💔');
-            });
-        }
+  <div id="messages"></div>
+</div>
 
-        function joinRoom() {
-            const playerName = document.getElementById('joinPlayerName').value.trim();
-            const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
-            
-            if (!playerName || !roomCode) {
-                alert('Please enter both your name and room code! 💕');
-                return;
-            }
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-            if (!database) {
-                alert('Game is still loading, please wait! 💕');
-                return;
-            }
+<script>
+  // Initialize Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
+    authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
+    databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "rummy-multiplayer-fe391",
+    storageBucket: "rummy-multiplayer-fe391.firebasestorage.app",
+    messagingSenderId: "717212591323",
+    appId: "1:717212591323:web:7cb38b16733f7cb38b16733f7a9b5498fe"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-            gameState.playerName = playerName;
-            gameState.roomCode = roomCode;
-            gameState.isPlayerOne = false;
+  // Card utilities
+  const suits = ['♠', '♥', '♦', '♣'];
+  const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const cardValues = {
+    'A': 1, '2': 2, '3': 3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10,
+    'J':10, 'Q':10, 'K':10
+  };
 
-            const roomRef = database.ref('rooms/' + roomCode);
-            roomRef.once('value').then(snapshot => {
-                if (!snapshot.exists()) {
-                    alert('Room not found! Please check the code. 💔');
-                    return;
-                }
+  // UI Elements
+  const lobbyDiv = document.getElementById('lobby');
+  const gameDiv = document.getElementById('game');
+  const roomIdInput = document.getElementById('room-id-input');
+  const btnJoinRoom = document.getElementById('btn-join-room');
+  const btnCreateRoom = document.getElementById('btn-create-room');
+  const lobbyMessage = document.getElementById('lobby-message');
 
-                const gameData = snapshot.val();
-                if (gameData.players.player2) {
-                    alert('Room is full! 💔');
-                    return;
-                }
+  const roomIdDisplay = document.getElementById('room-id-display');
+  const playerScoreSpan = document.getElementById('player-score');
+  const opponentScoreSpan = document.getElementById('opponent-score');
+  const playerHandDiv = document.getElementById('player-hand');
+  const opponentHandDiv = document.getElementById('opponent-hand');
+  const deckDiv = document.getElementById('deck');
+  const discardDiv = document.getElementById('discard');
+  const btnDraw = document.getElementById('btn-draw');
+  const btnKnock = document.getElementById('btn-knock');
+  const btnGin = document.getElementById('btn-gin');
+  const btnDiscard = document.getElementById('btn-discard');
+  const btnCreateMeld = document.getElementById('btn-create-meld');
+  const yourMeldsList = document.getElementById('your-melds-list');
+  const meldSelectionDiv = document.getElementById('meld-selection');
+  const btnLeaveRoom = document.getElementById('btn-leave-room');
+  const messagesDiv = document.getElementById('messages');
 
-                roomRef.child('players/player2').set({
-                    name: playerName, score: 0, ready: true
-                }).then(() => {
-                    startGame(roomRef);
-                    document.getElementById('joinRoomModal').style.display = 'none';
-                    roomRef.on('value', handleGameUpdate);
-                });
-            }).catch(error => {
-                console.error('Error joining room:', error);
-                alert('Failed to join room. Please try again! 💔');
-            });
-        }
+  // Game State
+  let roomId = null;
+  let playerId = null; // "player1" or "player2"
+  let gameData = null;
+  let selectedCardsForMeld = [];
+  let selectedCardToDiscard = null;
 
-        function leaveRoom() {
-            if (gameState.roomCode && database) {
-                const roomRef = database.ref('rooms/' + gameState.roomCode);
-                roomRef.off('value', handleGameUpdate);
-                
-                if (gameState.isPlayerOne) {
-                    roomRef.remove();
-                } else {
-                    roomRef.child('players/player2').remove();
-                    roomRef.child('gameStarted').set(false);
-                }
-            }
+  // Firebase references
+  let roomRef = null;
 
-            gameState = {
-                currentPlayer: null,
-                playerName: '',
-                roomCode: '',
-                isPlayerOne: false,
-                gameData: null,
-                selectedCards: [],
-                hasDrawn: false
-            };
+  // Helper functions
+  function createDeck() {
+    const d = [];
+    for (const s of suits) {
+      for (const r of ranks) {
+        d.push({suit: s, rank: r});
+      }
+    }
+    return d;
+  }
 
-            document.getElementById('gameBoard').style.display = 'none';
-            document.getElementById('waitingRoom').style.display = 'none';
-            document.getElementById('gameOverModal').style.display = 'none';
-            showWelcome();
-        }
+  function shuffle(array) {
+    for (let i = array.length -1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i+1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
 
-        function drawFromDeck() {
-            if (!gameState.gameData) return;
-            
-            const data = gameState.gameData;
-            const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) || 
-                           (!gameState.isPlayerOne && data.currentTurn === 2);
+  function cardToString(card) {
+    return card.rank + card.suit;
+  }
 
-            if (!isMyTurn || gameState.hasDrawn || data.deck.length === 0) return;
+  function cardEquals(a, b) {
+    return a.rank === b.rank && a.suit === b.suit;
+  }
 
-            const roomRef = database.ref('rooms/' + gameState.roomCode);
-            const drawnCard = data.deck[data.deck.length - 1];
-            const newDeck = data.deck.slice(0, -1);
-            const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
-            const newHand = [...(gameState.isPlayerOne ? data.hands.player1 : data.hands.player2), drawnCard];
+  function renderCard(card, options = {}) {
+    const {clickable = false, onClick = null, selected = false} = options;
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'card';
+    if (card.suit === '♥' || card.suit === '♦') cardDiv.classList.add('red');
+    if (selected) cardDiv.classList.add('selected');
+    cardDiv.innerHTML = `
+      <div class="top-left">${card.rank}</div>
+      <div class="suit">${card.suit}</div>
+      <div class="bottom-right">${card.rank}</div>
+    `;
+    if (clickable) {
+      cardDiv.style.cursor = 'pointer';
+      cardDiv.addEventListener('click', () => {
+        if (onClick) onClick(card);
+      });
+    }
+    return cardDiv;
+  }
 
-            roomRef.update({
-                deck: newDeck,
-                [`hands/${playerKey}`]: newHand
-            });
+  function renderHand(hand, container, options = {}) {
+    const {clickable = false, onClick = null, hideCards = false, selectedCards = []} = options;
+    container.innerHTML = '';
+    hand.forEach(card => {
+      if (hideCards) {
+        const back = document.createElement('div');
+        back.className = 'card';
+        back.style.background = '#800000';
+        back.style.color = '#f8b500';
+        back.style.textAlign = 'center';
+        back.style.fontSize = '2rem';
+        back.style.userSelect = 'none';
+        back.textContent = '♥';
+        container.appendChild(back);
+      } else {
+        const isSelected = selectedCards.some(c => cardEquals(c, card));
+        container.appendChild(renderCard(card, {clickable, onClick, selected: isSelected}));
+      }
+    });
+  }
 
-            gameState.hasDrawn = true;
-            updateControlButtons();
-        }
+  function updateUI() {
+    if (!gameData) return;
+    const playerHand = gameData[playerId].hand;
+    const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+    const opponentHand = gameData[opponentId].hand;
+    const playerMelds = gameData[playerId].melds || [];
+    const opponentMelds = gameData[opponentId].melds || [];
+    const deckSize = gameData.deck.length;
+    const discardPile = gameData.discardPile;
+    const turn = gameData.turn;
+    const scores = gameData.scores || {player1:0, player2:0};
+    const roundOver = gameData.roundOver || false;
 
-function drawFromDiscard() {
-    if (!gameState.gameData) return;
-    
-    const data = gameState.gameData;
-    const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) || 
-                   (!gameState.isPlayerOne && data.currentTurn === 2);
+    roomIdDisplay.textContent = roomId;
+    playerScoreSpan.textContent = scores[playerId];
+    opponentScoreSpan.textContent = scores[opponentId];
 
-    if (!isMyTurn || gameState.hasDrawn || data.discardPile.length === 0) return;
+    renderHand(playerHand, playerHandDiv, true, onPlayerCardClick, false, selectedCardsForMeld);
+    renderHand(opponentHand, opponentHandDiv, false, null, true);
 
-    const roomRef = database.ref('rooms/' + gameState.roomCode);
-    const drawnCard = data.discardPile[data.discardPile.length - 1];
-    const newDiscardPile = data.discardPile.slice(0, -1);
-    const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
-    const newHand = [...(gameState.isPlayerOne ? data.hands.player1 : data.hands.player2), drawnCard];
+    deckDiv.textContent = `Deck\n(${deckSize})`;
+    discardDiv.textContent = discardPile.length > 0 ? cardToString(discardPile[discardPile.length - 1]) : 'Discard';
 
-    // ✅ Clear previous discard selection and meld selections
-    selectedCardToDiscard = null;
-    selectedCardsForMeld = [];
-
-    roomRef.update({
-        discardPile: newDiscardPile,
-        [`hands/${playerKey}`]: newHand
+    // Melds display
+    yourMeldsList.innerHTML = '';
+    playerMelds.forEach((meld, idx) => {
+      const meldDiv = document.createElement('div');
+      meldDiv.style.display = 'inline-flex';
+      meldDiv.style.gap = '0.3rem';
+      meldDiv.style.marginBottom = '0.3rem';
+      meld.forEach(card => {
+        meldDiv.appendChild(renderCard(card));
+      });
+      yourMeldsList.appendChild(meldDiv);
     });
 
-    gameState.hasDrawn = true;
-    updateControlButtons();
-}
-
-        function showMeldOptions() {
-            if (gameState.selectedCards.length < 3) {
-                alert('Select at least 3 cards to form a meld! 💕');
-                return;
-            }
-
-            const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
-            const selectedCards = gameState.selectedCards.map(index => myHand[index]);
-
-            if (isValidMeld(selectedCards)) {
-                formMeld(selectedCards);
-            } else {
-                alert('Selected cards do not form a valid meld! 💔');
-            }
-        }
-
-        function knock() {
-            if (!gameState.gameData) return;
-            
-            const data = gameState.gameData;
-            const myHand = gameState.isPlayerOne ? data.hands.player1 : data.hands.player2;
-            const myMelds = gameState.isPlayerOne ? data.melds.player1 : data.melds.player2;
-            const deadwood = calculateDeadwood(myHand, myMelds);
-
-            if (deadwood <= 10) {
-                endRound('knock');
-            } else {
-                alert('You can only knock with 10 or fewer deadwood points! 💔');
-            }
-        }
-
-        function gin() {
-            if (!gameState.gameData) return;
-            
-            const data = gameState.gameData;
-            const myHand = gameState.isPlayerOne ? data.hands.player1 : data.hands.player2;
-            const myMelds = gameState.isPlayerOne ? data.melds.player1 : data.melds.player2;
-            const deadwood = calculateDeadwood(myHand, myMelds);
-
-            if (deadwood === 0) {
-                endRound('gin');
-            } else {
-                alert('You can only gin with no deadwood points! 💔');
-            }
-        }
-
-        function playAgain() {
-            if (!database || !gameState.roomCode) return;
-            
-            const roomRef = database.ref('rooms/' + gameState.roomCode);
-            const deck = createDeck();
-            const player1Hand = deck.splice(0, 10);
-            const player2Hand = deck.splice(0, 10);
-            const discardPile = [deck.pop()];
-
-            roomRef.update({
-                currentTurn: 1,
-                deck: deck,
-                discardPile: discardPile,
-                'hands/player1': player1Hand,
-                'hands/player2': player2Hand,
-                'melds/player1': [],
-                'melds/player2': [],
-                'players/player1/score': 0,
-                'players/player2/score': 0,
-                round: 1,
-                winner: null
-            });
-
-            gameState.hasDrawn = false;
-            gameState.selectedCards = [];
-            document.getElementById('gameOverModal').style.display = 'none';
-        }
-
-        // Helper functions
-        const suits = ['♥️', '♦️', '♠️', '♣️'];
-        const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-        const cardValues = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10 };
-
-        function createDeck() {
-            const deck = [];
-            suits.forEach(suit => {
-                ranks.forEach(rank => {
-                    deck.push({ suit, rank, value: cardValues[rank] });
-                });
-            });
-            return shuffleDeck(deck);
-        }
-
-        function shuffleDeck(deck) {
-            for (let i = deck.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [deck[i], deck[j]] = [deck[j], deck[i]];
-            }
-            return deck;
-        }
-
-        function generateRoomCode() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
-        function startGame(roomRef) {
-            const deck = createDeck();
-            const player1Hand = deck.splice(0, 10);
-            const player2Hand = deck.splice(0, 10);
-            const discardPile = [deck.pop()];
-
-            roomRef.update({
-                gameStarted: true,
-                currentTurn: 1,
-                deck: deck,
-                discardPile: discardPile,
-                'hands/player1': player1Hand,
-                'hands/player2': player2Hand
-            });
-        }
-
-        function handleGameUpdate(snapshot) {
-            if (!snapshot.exists()) {
-                alert('Game ended! 💔');
-                leaveRoom();
-                return;
-            }
-
-            gameState.gameData = snapshot.val();
-            const data = gameState.gameData;
-
-            if (data.gameStarted && data.players.player1 && data.players.player2) {
-                document.getElementById('waitingRoom').style.display = 'none';
-                document.getElementById('gameBoard').style.display = 'block';
-                updateGameUI();
-            }
-
-            if (data.winner) {
-                showGameOver();
-            }
-        }
-
-        function updateGameUI() {
-            const data = gameState.gameData;
-            const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) || 
-                           (!gameState.isPlayerOne && data.currentTurn === 2);
-
-            document.getElementById('player1Name').textContent = data.players.player1.name;
-            document.getElementById('player2Name').textContent = data.players.player2.name;
-            document.getElementById('player1Score').textContent = data.players.player1.score;
-            document.getElementById('player2Score').textContent = data.players.player2.score;
-
-            const currentPlayerName = data.currentTurn === 1 ? data.players.player1.name : data.players.player2.name;
-            document.getElementById('gameStatus').textContent = isMyTurn ? 
-                "Your turn, sweetie! 💕" : `${currentPlayerName}'s turn 💖`;
-
-            const myHand = gameState.isPlayerOne ? data.hands.player1 : data.hands.player2;
-            updateHandDisplay(myHand);
-
-            const myMelds = gameState.isPlayerOne ? data.melds.player1 : data.melds.player2;
-            updateMeldsDisplay(myMelds);
-
-            if (data.discardPile && data.discardPile.length > 0) {
-                const topCard = data.discardPile[data.discardPile.length - 1];
-                updateDiscardPile(topCard);
-            }
-
-            updateControlButtons(isMyTurn);
-        }
-
-        function updateHandDisplay(hand) {
-            const handElement = document.getElementById('playerHand');
-            handElement.innerHTML = '';
-
-            hand.forEach((card, index) => {
-                const cardElement = createCardElement(card, index);
-                cardElement.onclick = () => selectCard(index);
-                handElement.appendChild(cardElement);
-            });
-        }
-
-        function updateMeldsDisplay(melds) {
-            const meldsElement = document.getElementById('playerMelds');
-            meldsElement.innerHTML = '';
-
-            melds.forEach(meld => {
-                const meldDiv = document.createElement('div');
-                meldDiv.className = 'meld';
-                
-                meld.forEach(card => {
-                    const cardElement = createCardElement(card);
-                    cardElement.style.width = '60px';
-                    cardElement.style.height = '90px';
-                    meldDiv.appendChild(cardElement);
-                });
-                
-                meldsElement.appendChild(meldDiv);
-            });
-        }
-
-        function createCardElement(card, index = null) {
-            const cardDiv = document.createElement('div');
-            cardDiv.className = `card ${(card.suit === '♥️' || card.suit === '♦️') ? 'red' : 'black'}`;
-            if (index !== null && gameState.selectedCards.includes(index)) {
-                cardDiv.classList.add('selected');
-            }
-            
-            cardDiv.innerHTML = `
-                <div>${card.rank}</div>
-                <div style="font-size: 1.5rem;">${card.suit}</div>
-                <div style="transform: rotate(180deg);">${card.rank}</div>
-            `;
-            
-            return cardDiv;
-        }
-
-        function updateDiscardPile(topCard) {
-            const discardElement = document.getElementById('discardPile');
-            discardElement.style.display = 'flex';
-            discardElement.className = `card ${(topCard.suit === '♥️' || topCard.suit === '♦️') ? 'red' : 'black'}`;
-            discardElement.innerHTML = `
-                <div>${topCard.rank}</div>
-                <div style="font-size: 1.5rem;">${topCard.suit}</div>
-                <div style="transform: rotate(180deg);">${topCard.rank}</div>
-            `;
-        }
-
-        function selectCard(index) {
-            if (!gameState.gameData || !gameState.gameData.hands) return;
-            
-            const selectedIndex = gameState.selectedCards.indexOf(index);
-            if (selectedIndex > -1) {
-                gameState.selectedCards.splice(selectedIndex, 1);
-            } else {
-                gameState.selectedCards.push(index);
-            }
-            
-            const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
-            if (myHand) {
-                updateHandDisplay(myHand);
-                updateControlButtons();
-            }
-        }
-
-        function updateControlButtons(isMyTurn = null) {
-            if (!gameState.gameData || !gameState.gameData.hands) return;
-            
-            if (isMyTurn === null) {
-                isMyTurn = (gameState.isPlayerOne && gameState.gameData.currentTurn === 1) || 
-                          (!gameState.isPlayerOne && gameState.gameData.currentTurn === 2);
-            }
-
-            const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
-            const myMelds = gameState.isPlayerOne ? gameState.gameData.melds.player1 : gameState.gameData.melds.player2;
-            
-            if (!myHand || !myMelds) return;
-            
-            const deadwood = calculateDeadwood(myHand, myMelds);
-
-            document.getElementById('meldBtn').disabled = !isMyTurn || gameState.selectedCards.length < 3;
-            document.getElementById('knockBtn').disabled = !isMyTurn || !gameState.hasDrawn || deadwood > 10;
-            document.getElementById('ginBtn').disabled = !isMyTurn || !gameState.hasDrawn || deadwood > 0;
-        }
-
-        function isValidMeld(cards) {
-            if (cards.length < 3) return false;
-
-            // Check for set (same rank)
-            const ranks = cards.map(card => card.rank);
-            const uniqueRanks = [...new Set(ranks)];
-            if (uniqueRanks.length === 1) return true;
-
-            // Check for run (consecutive ranks in same suit)
-            const suits = cards.map(card => card.suit);
-            const uniqueSuits = [...new Set(suits)];
-            if (uniqueSuits.length === 1) {
-                const sortedCards = cards.sort((a, b) => cardValues[a.rank] - cardValues[b.rank]);
-                for (let i = 1; i < sortedCards.length; i++) {
-                    if (cardValues[sortedCards[i].rank] - cardValues[sortedCards[i-1].rank] !== 1) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            return false;
-        }
-
-        function formMeld(meldCards) {
-            const data = gameState.gameData;
-            const roomRef = database.ref('rooms/' + gameState.roomCode);
-            const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
-            
-            const currentHand = gameState.isPlayerOne ? data.hands.player1 : data.hands.player2;
-            const currentMelds = gameState.isPlayerOne ? data.melds.player1 : data.melds.player2;
-
-            const newHand = currentHand.filter((card, index) => !gameState.selectedCards.includes(index));
-            const newMelds = [...currentMelds, meldCards];
-
-            roomRef.update({
-                [`hands/${playerKey}`]: newHand,
-                [`melds/${playerKey}`]: newMelds
-            });
-
-            gameState.selectedCards = [];
-        }
-
-        function calculateDeadwood(hand, melds) {
-            const meldedCards = melds.flat();
-            const deadwoodCards = hand.filter(card => 
-                !meldedCards.some(meld => meld.rank === card.rank && meld.suit === card.suit)
-            );
-            return deadwoodCards.reduce((sum, card) => sum + card.value, 0);
-        }
-
-        function endRound(endType) {
-            const data = gameState.gameData;
-            const roomRef = database.ref('rooms/' + gameState.roomCode);
-            
-            const player1Hand = data.hands.player1;
-            const player2Hand = data.hands.player2;
-            const player1Melds = data.melds.player1;
-            const player2Melds = data.melds.player2;
-            
-            const player1Deadwood = calculateDeadwood(player1Hand, player1Melds);
-            const player2Deadwood = calculateDeadwood(player2Hand, player2Melds);
-            
-            let scoreToAdd = 0;
-            let winner = null;
-            
-            if (endType === 'gin') {
-                scoreToAdd = player1Deadwood + player2Deadwood + 25;
-                winner = gameState.isPlayerOne ? 1 : 2;
-            } else if (endType === 'knock') {
-                const knocker = gameState.isPlayerOne ? 1 : 2;
-                const knockerDeadwood = gameState.isPlayerOne ? player1Deadwood : player2Deadwood;
-                const opponentDeadwood = gameState.isPlayerOne ? player2Deadwood : player1Deadwood;
-                
-                if (knockerDeadwood < opponentDeadwood) {
-                    scoreToAdd = opponentDeadwood - knockerDeadwood;
-                    winner = knocker;
-                } else {
-                    scoreToAdd = knockerDeadwood - opponentDeadwood + 25;
-                    winner = knocker === 1 ? 2 : 1;
-                }
-            }
-            
-            const newScore1 = winner === 1 ? data.players.player1.score + scoreToAdd : data.players.player1.score;
-            const newScore2 = winner === 2 ? data.players.player2.score + scoreToAdd : data.players.player2.score;
-            
-            if (newScore1 >= 100 || newScore2 >= 100) {
-                roomRef.update({
-                    winner: newScore1 >= 100 ? 1 : 2,
-                    'players/player1/score': newScore1,
-                    'players/player2/score': newScore2
-                });
-            } else {
-                const deck = createDeck();
-                const newPlayer1Hand = deck.splice(0, 10);
-                const newPlayer2Hand = deck.splice(0, 10);
-                const newDiscardPile = [deck.pop()];
-                
-                roomRef.update({
-                    'players/player1/score': newScore1,
-                    'players/player2/score': newScore2,
-                    currentTurn: winner,
-                    deck: deck,
-                    discardPile: newDiscardPile,
-                    'hands/player1': newPlayer1Hand,
-                    'hands/player2': newPlayer2Hand,
-                    'melds/player1': [],
-                    'melds/player2': [],
-                    round: data.round + 1
-                });
-            }
-            
-            gameState.hasDrawn = false;
-            gameState.selectedCards = [];
-        }
-
-        function showGameOver() {
-            const data = gameState.gameData;
-            const winnerName = data.winner === 1 ? data.players.player1.name : data.players.player2.name;
-            const isWinner = (gameState.isPlayerOne && data.winner === 1) || (!gameState.isPlayerOne && data.winner === 2);
-            
-            document.getElementById('gameOverTitle').innerHTML = isWinner ? '💖 You Won! 💖' : '💔 Game Over 💔';
-            document.getElementById('gameOverMessage').innerHTML = isWinner ? 
-                `Congratulations! You've won your sweetheart's heart! 💕` :
-                `${winnerName} has stolen your heart this time! 💘`;
-            
-            document.getElementById('finalScores').innerHTML = `
-                <p><strong>${data.players.player1.name}:</strong> ${data.players.player1.score} points</p>
-                <p><strong>${data.players.player2.name}:</strong> ${data.players.player2.score} points</p>
-            `;
-            
-            document.getElementById('gameOverModal').style.display = 'block';
-        }
-
-        function discardCard() {
-            if (gameState.selectedCards.length !== 1) {
-                alert('Please select exactly one card to discard! 💕');
-                return;
-            }
-
-            const data = gameState.gameData;
-            const roomRef = database.ref('rooms/' + gameState.roomCode);
-            const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
-            const currentHand = gameState.isPlayerOne ? data.hands.player1 : data.hands.player2;
-            
-            const discardIndex = gameState.selectedCards[0];
-            const discardedCard = currentHand[discardIndex];
-            const newHand = currentHand.filter((_, index) => index !== discardIndex);
-            const newDiscardPile = [...data.discardPile, discardedCard];
-            const nextTurn = data.currentTurn === 1 ? 2 : 1;
-
-            roomRef.update({
-                [`hands/${playerKey}`]: newHand,
-                discardPile: newDiscardPile,
-                currentTurn: nextTurn
-            });
-
-            gameState.selectedCards = [];
-            gameState.hasDrawn = false;
-        }
-
-        // Initialize Firebase after functions are defined
-        document.addEventListener('DOMContentLoaded', function() {
-            // Firebase configuration
-            const firebaseConfig = {
-                apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
-                authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
-                databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
-                projectId: "rummy-multiplayer-fe391",
-                storageBucket: "rummy-multiplayer-fe391.firebasedatabase.app",
-                messagingSenderId: "717212591323",
-                appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
-            };
-
-            // Initialize Firebase
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-
-            console.log('💖 Hearts & Cards Game Ready! 💖');
-        });
-
-        // Auto-discard when hand size > 10
-        setInterval(() => {
-            if (gameState && gameState.gameData && gameState.gameData.gameStarted && gameState.gameData.hands) {
-                const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
-                const isMyTurn = (gameState.isPlayerOne && gameState.gameData.currentTurn === 1) || 
-                               (!gameState.isPlayerOne && gameState.gameData.currentTurn === 2);
-                
-                if (myHand && myHand.length > 10 && isMyTurn && gameState.hasDrawn) {
-                    if (gameState.selectedCards.length === 0) {
-                        gameState.selectedCards = [0];
-                        updateHandDisplay(myHand);
-                    }
-                    
-                    if (gameState.selectedCards.length === 1) {
-                        setTimeout(() => {
-                            if (confirm('You must discard a card. Discard selected card?')) {
-                                discardCard();
-                            }
-                        }, 500);
-                    }
-                }
-            }
-        }, 1000);
-
-        // Floating hearts animation
-        function createFloatingHeart() {
-            const heart = document.createElement('div');
-            heart.className = 'heart';
-            heart.innerHTML = '💖';
-            heart.style.left = Math.random() * 100 + '%';
-            heart.style.animationDelay = Math.random() * 2 + 's';
-            heart.style.animationDuration = (Math.random() * 3 + 3) + 's';
-            
-            const heartsContainer = document.getElementById('hearts');
-            if (heartsContainer) {
-                heartsContainer.appendChild(heart);
-                setTimeout(() => heart.remove(), 6000);
-            }
-        }
-
-        setInterval(createFloatingHeart, 2000);
-        for (let i = 0; i < 5; i++) {
-            setTimeout(createFloatingHeart, i * 400);
-        }
-
-        // Handle page visibility
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && gameState.roomCode && database) {
-                const roomRef = database.ref('rooms/' + gameState.roomCode);
-                roomRef.once('value').then(handleGameUpdate);
-            }
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (gameState.roomCode && database) {
-                const roomRef = database.ref('rooms/' + gameState.roomCode);
-                roomRef.off('value', handleGameUpdate);
-            }
-        });
-    </script>
-
-    <div class="love-hearts" id="hearts"></div>
-    
-    <div class="container">
-        <div class="header">
-            <h1>💝 Hearts & Cards 💝</h1>
-            <p class="subtitle">Love-themed Gin Rummy for Two Hearts</p>
-        </div>
-
-        <!-- Welcome Modal -->
-        <div id="welcomeModal" class="modal" style="display: block;">
-            <div class="modal-content">
-                <h2>💕 Welcome to Hearts & Cards! 💕</h2>
-                <p>Choose how you'd like to play this romantic game of Gin Rummy:</p>
-                <div style="margin: 30px 0;">
-                    <button class="btn btn-primary" onclick="showCreateRoom()" style="margin: 10px;">Create Room</button>
-                    <button class="btn btn-secondary" onclick="showJoinRoom()" style="margin: 10px;">Join Room</button>
-                </div>
-                <div class="rules">
-                    <h4>💖 Game Rules:</h4>
-                    <ul>
-                        <li>Draw a card from deck or discard pile</li>
-                        <li>Form sets (3+ same rank) or runs (3+ consecutive cards)</li>
-                        <li>Knock when deadwood ≤ 10 points</li>
-                        <li>Go Gin with no deadwood for bonus!</li>
-                        <li>First to 100 points wins your heart! 💘</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Create Room Modal -->
-        <div id="createRoomModal" class="modal">
-            <div class="modal-content">
-                <h2>💖 Create Love Room 💖</h2>
-                <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
-                <div style="margin: 20px 0;">
-                    <button class="btn btn-primary" onclick="createRoom()">Create Room</button>
-                    <button class="btn btn-secondary" onclick="showWelcome()">Back</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Join Room Modal -->
-        <div id="joinRoomModal" class="modal">
-            <div class="modal-content">
-                <h2>💕 Join Love Room 💕</h2>
-                <input type="text" id="joinPlayerName" placeholder="Enter your name" maxlength="20">
-                <input type="text" id="roomCode" placeholder="Enter room code" maxlength="6">
-                <div style="margin: 20px 0;">
-                    <button class="btn btn-primary" onclick="joinRoom()">Join Room</button>
-                    <button class="btn btn-secondary" onclick="showWelcome()">Back</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Waiting Room -->
-        <div id="waitingRoom" class="waiting-room" style="display: none;">
-            <h3>💝 Waiting for Your Love Match... 💝</h3>
-            <p>Share this room code with your partner:</p>
-            <div class="room-code" id="displayRoomCode"></div>
-            <p>Waiting for player 2 to join...</p>
-            <button class="btn btn-secondary" onclick="leaveRoom()">Leave Room</button>
-        </div>
-
-        <!-- Game Board -->
-        <div id="gameBoard" class="game-board" style="display: none;">
-            <div class="game-info">
-                <div class="player-info">
-                    <h3 id="player1Name">Player 1</h3>
-                    <div class="score" id="player1Score">0</div>
-                </div>
-                <div class="game-status" id="gameStatus">Your turn, sweetie! 💕</div>
-                <div class="player-info">
-                    <h3 id="player2Name">Player 2</h3>
-                    <div class="score" id="player2Score">0</div>
-                </div>
-            </div>
-
-            <div class="cards-area">
-                <div class="discard-draw-pile">
-                    <div class="pile">
-                        <h4>💗 Draw Pile</h4>
-                        <div class="card back" id="drawPile" onclick="drawFromDeck()">
-                            💝
-                        </div>
-                    </div>
-                    <div class="pile">
-                        <h4>💔 Discard Pile</h4>
-                        <div class="card back" id="discardPile" onclick="drawFromDiscard()" style="display: none;">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="meld-area">
-                    <h4>💖 Your Melds (Sets & Runs)</h4>
-                    <div class="melds" id="playerMelds"></div>
-                </div>
-
-                <div class="hand">
-                    <h4>💕 Your Hand</h4>
-                    <div class="hand-cards" id="playerHand"></div>
-                </div>
-            </div>
-
-            <div class="controls">
-                <button class="btn btn-success" id="meldBtn" onclick="showMeldOptions()" disabled>Form Meld</button>
-                <button class="btn btn-primary" id="knockBtn" onclick="knock()" disabled>Knock</button>
-                <button class="btn btn-secondary" id="ginBtn" onclick="gin()" disabled>Gin!</button>
-                <button class="btn btn-secondary" onclick="leaveRoom()">Leave Game</button>
-            </div>
-        </div>
-
-        <!-- Game Over Modal -->
-        <div id="gameOverModal" class="modal">
-            <div class="modal-content">
-                <h2 id="gameOverTitle">💖 Game Over 💖</h2>
-                <p id="gameOverMessage"></p>
-                <div id="finalScores"></div>
-                <div style="margin: 20px 0;">
-                    <button class="btn btn-primary" onclick="playAgain()">Play Again</button>
-                    <button class="btn btn-secondary" onclick="leaveRoom()">Leave</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    // Meld selection display
+    meldSelectionDiv.textContent = selectedCardsForMeld.length > 0 ? 
+      'Selected for meld: ' + selectedCardsForMeld.map(cardToString).join(', ') : 'Select cards in your hand to create a meld';
+
+    // Buttons enabled/disabled logic
+    const isPlayerTurn = turn === playerId && !roundOver;
+    btnDraw.disabled = !isPlayerTurn || gameData.drawnCard !== null;
+    btnKnock.disabled = !isPlayerTurn || gameData.drawnCard === null || roundOver || calculateDeadwood(playerHand, playerMelds) > 10;
+    btnGin.disabled = !isPlayerTurn || gameData.drawnCard === null || roundOver || calculateDeadwood(playerHand, playerMelds) !== 0;
+    btnDiscard.disabled = !isPlayerTurn || gameData.drawnCard === null || !selectedCardToDiscard || roundOver;
+    btnCreateMeld.disabled = !isPlayerTurn || selectedCardsForMeld.length < 3 || !isValidMeld(selectedCardsForMeld) || roundOver;
+
+    messagesDiv.textContent = gameData.message || (roundOver ? 'Round over. Start a new round or leave room.' : (isPlayerTurn ? 'Your turn' : "Opponent's turn"));
+  }
+
+  // Meld validation helpers
+  function isValidMeld(cards) {
+    if (cards.length < 3) return false;
+    // Check if all cards same rank (set)
+    const allSameRank = cards.every(c => c.rank === cards[0].rank);
+    if (allSameRank) return true;
+
+    // Check if run: same suit, consecutive ranks
+    const allSameSuit = cards.every(c => c.suit === cards[0].suit);
+    if (!allSameSuit) return false;
+
+    // Sort cards by rank index
+    const rankIndices = cards.map(c => ranks.indexOf(c.rank)).sort((a,b) => a-b);
+
+    for (let i=1; i<rankIndices.length; i++) {
+      if (rankIndices[i] !== rankIndices[i-1] + 1) return false;
+    }
+    return true;
+  }
+
+  // Deadwood calculation: sum of cards not in melds
+  function calculateDeadwood(hand, melds) {
+    const meldCards = melds.flat();
+    const deadwoodCards = hand.filter(card => !meldCards.some(meldCard => cardEquals(card, meldCard)));
+    return deadwoodCards.reduce((sum, c) => sum + cardValues[c.rank], 0);
+  }
+
+  // Event Handlers
+  function onPlayerCardClick(card) {
+    if (!gameData) return;
+    if (gameData.turn !== playerId) return;
+    if (gameData.drawnCard === null) {
+      messagesDiv.textContent = 'You must draw a card first.';
+      return;
+    }
+
+    // If selecting for meld creation mode
+    if (selectedCardToDiscard && cardEquals(card, selectedCardToDiscard)) {
+      // Cannot select discard card for meld
+      messagesDiv.textContent = 'Cannot select the card you want to discard for meld.';
+      return;
+    }
+
+    // Toggle selection for meld
+    const idx = selectedCardsForMeld.findIndex(c => cardEquals(c, card));
+    if (idx >= 0) {
+      selectedCardsForMeld.splice(idx, 1);
+    } else {
+      selectedCardsForMeld.push(card);
+    }
+    updateUI();
+  }
+
+  function onPlayerHandClick(card) {
+    // For discard selection
+    if (!gameData) return;
+    if (gameData.turn !== playerId) return;
+    if (gameData.drawnCard === null) {
+      messagesDiv.textContent = 'You must draw a card first.';
+      return;
+    }
+    // Select card to discard
+    selectedCardToDiscard = card;
+    // Clear meld selection if discard selected
+    selectedCardsForMeld = [];
+    updateUI();
+  }
+
+  // Draw card from deck or discard pile
+  function drawCard(fromDiscard) {
+    if (!gameData) return;
+    if (gameData.turn !== playerId) return;
+    if (gameData.drawnCard !== null) return;
+
+    if (fromDiscard && gameData.discardPile.length === 0) {
+      messagesDiv.textContent = 'Discard pile is empty.';
+      return;
+    }
+    if (!fromDiscard && gameData.deck.length === 0) {
+      messagesDiv.textContent = 'Deck is empty. Round ends.';
+      endRound();
+      return;
+    }
+
+    // Update gameData in Firebase
+    const card = fromDiscard ? gameData.discardPile[gameData.discardPile.length - 1] : gameData.deck[gameData.deck.length - 1];
+    const updates = {};
+    if (fromDiscard) {
+      updates[`/rooms/${roomId}/discardPile`] = gameData.discardPile.slice(0, -1);
+    } else {
+      updates[`/rooms/${roomId}/deck`] = gameData.deck.slice(0, -1);
+    }
+    updates[`/rooms/${roomId}/${playerId}/hand`] = [...gameData[playerId].hand, card];
+    updates[`/rooms/${roomId}/drawnCard`] = card;
+    updates[`/rooms/${roomId}/message`] = `Player ${playerId === 'player1' ? '1' : '2'} drew a card. Discard a card.`;
+    db.ref().update(updates);
+  }
+
+  // Discard selected card
+  function discardSelectedCard() {
+    if (!gameData) return;
+    if (gameData.turn !== playerId) return;
+    if (gameData.drawnCard === null) {
+      messagesDiv.textContent = 'You must draw a card first.';
+      return;
+    }
+    if (!selectedCardToDiscard) {
+      messagesDiv.textContent = 'Select a card to discard.';
+      return;
+    }
+
+    // Remove card from hand
+    const hand = [...gameData[playerId].hand];
+    const idx = hand.findIndex(c => cardEquals(c, selectedCardToDiscard));
+    if (idx === -1) {
+      messagesDiv.textContent = 'Selected card not in hand.';
+      return;
+    }
+    hand.splice(idx, 1);
+
+    // Update discard pile and turn
+    const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+    const updates = {};
+    updates[`/rooms/${roomId}/${playerId}/hand`] = hand;
+    updates[`/rooms/${roomId}/discardPile`] = [...gameData.discardPile, selectedCardToDiscard];
+    updates[`/rooms/${roomId}/drawnCard`] = null;
+    updates[`/rooms/${roomId}/turn`] = opponentId;
+    updates[`/rooms/${roomId}/message`] = `Player ${playerId === 'player1' ? '1' : '2'} discarded ${cardToString(selectedCardToDiscard)}. Opponent's turn.`;
+    updates[`/rooms/${roomId}/meldSelection`] = null;
+    updates[`/rooms/${roomId}/selectedCardToDiscard`] = null;
+    db.ref().update(updates);
+    selectedCardToDiscard = null;
+    selectedCardsForMeld = [];
+  }
+
+  // Create meld from selected cards
+  function createMeld() {
+    if (!gameData) return;
+    if (gameData.turn !== playerId) return;
+    if (selectedCardsForMeld.length < 3) {
+      messagesDiv.textContent = 'Select at least 3 cards for a meld.';
+      return;
+    }
+    if (!isValidMeld(selectedCardsForMeld)) {
+      messagesDiv.textContent = 'Selected cards do not form a valid meld.';
+      return;
+    }
+
+    // Remove meld cards from hand and add to melds
+    const hand = [...gameData[playerId].hand];
+    for (const c of selectedCardsForMeld) {
+      const idx = hand.findIndex(card => cardEquals(card, c));
+      if (idx === -1) {
+        messagesDiv.textContent = 'One or more selected cards not in hand.';
+        return;
+      }
+      hand.splice(idx, 1);
+    }
+    const melds = gameData[playerId].melds || [];
+    melds.push(selectedCardsForMeld);
+
+    // Update Firebase
+    const updates = {};
+    updates[`/rooms/${roomId}/${playerId}/hand`] = hand;
+    updates[`/rooms/${roomId}/${playerId}/melds`] = melds;
+    updates[`/rooms/${roomId}/message`] = `Player ${playerId === 'player1' ? '1' : '2'} created a meld.`;
+    updates[`/rooms/${roomId}/meldSelection`] = null;
+    db.ref().update(updates);
+
+    selectedCardsForMeld = [];
+    updateUI();
+  }
+
+  // Knock
+  function knock() {
+    if (!gameData) return;
+    if (gameData.turn !== playerId) return;
+    if (gameData.drawnCard === null) {
+      messagesDiv.textContent = 'You must draw a card first.';
+      return;
+    }
+    const deadwood = calculateDeadwood(gameData[playerId].hand, gameData[playerId].melds || []);
+    if (deadwood > 10) {
+      messagesDiv.textContent = 'Cannot knock with deadwood > 10.';
+      return;
+    }
+
+    // End round, calculate scores
+    endRound(playerId, false);
+  }
+
+  // Go Gin
+  function goGin() {
+    if (!gameData) return;
+    if (gameData.turn !== playerId) return;
+    if (gameData.drawnCard === null) {
+      messagesDiv.textContent = 'You must draw a card first.';
+      return;
+    }
+    const deadwood = calculateDeadwood(gameData[playerId].hand, gameData[playerId].melds || []);
+    if (deadwood !== 0) {
+      messagesDiv.textContent = 'You can only go Gin with zero deadwood.';
+      return;
+    }
+
+    endRound(playerId, true);
+  }
+
+  // End round and calculate scores
+  function endRound(knockerId = null, gin = false) {
+    if (!gameData) return;
+    const opponentId = playerId === 'player1' ? 'player2' : 'player1';
+
+    // Calculate deadwood
+    const p1Deadwood = calculateDeadwood(gameData.player1.hand, gameData.player1.melds || []);
+    const p2Deadwood = calculateDeadwood(gameData.player2.hand, gameData.player2.melds || []);
+
+    let scores = {...gameData.scores};
+    let message = '';
+
+    if (gin && knockerId) {
+      // Gin bonus 25 + opponent deadwood
+      const opponentDeadwood = knockerId === 'player1' ? p2Deadwood : p1Deadwood;
+      scores[knockerId] += 25 + opponentDeadwood;
+      message = `Player ${knockerId === 'player1' ? '1' : '2'} went Gin! Gains ${25 + opponentDeadwood} points.`;
+    } else if (knockerId) {
+      // Knock scoring
+      const knockerDeadwood = knockerId === 'player1' ? p1Deadwood : p2Deadwood;
+      const otherDeadwood = knockerId === 'player1' ? p2Deadwood : p1Deadwood;
+
+      if (knockerDeadwood < otherDeadwood) {
+        scores[knockerId] += otherDeadwood - knockerDeadwood;
+        message = `Player ${knockerId === 'player1' ? '1' : '2'} knocked and wins ${otherDeadwood - knockerDeadwood} points.`;
+      } else {
+        // Undercut bonus 10 + difference to opponent
+        const undercutPlayer = knockerId === 'player1' ? 'player2' : 'player1';
+        scores[undercutPlayer] += 10 + knockerDeadwood - otherDeadwood;
+        message = `Player ${knockerId === 'player1' ? '1' : '2'} was undercut! Opponent gains ${10 + knockerDeadwood - otherDeadwood} points.`;
+      }
+    } else {
+      message = 'Round ended with no knock or Gin.';
+    }
+
+    // Reset round state: new deck, hands, melds, discard, drawnCard, turn player1
+    let newDeck = createDeck();
+    shuffle(newDeck);
+
+    const p1Hand = [];
+    const p2Hand = [];
+    for (let i=0; i<10; i++) {
+      p1Hand.push(newDeck.pop());
+      p2Hand.push(newDeck.pop());
+    }
+    const newDiscardPile = [newDeck.pop()];
+
+    const updates = {
+      [`/rooms/${roomId}/deck`]: newDeck,
+      [`/rooms/${roomId}/discardPile`]: newDiscardPile,
+      [`/rooms/${roomId}/player1/hand`]: p1Hand,
+      [`/rooms/${roomId}/player2/hand`]: p2Hand,
+      [`/rooms/${roomId}/player1/melds`]: [],
+      [`/rooms/${roomId}/player2/melds`]: [],
+      [`/rooms/${roomId}/turn`]: 'player1',
+      [`/rooms/${roomId}/drawnCard`]: null,
+      [`/rooms/${roomId}/scores`]: scores,
+      [`/rooms/${roomId}/roundOver`]: false,
+      [`/rooms/${roomId}/message`]: message,
+      [`/rooms/${roomId}/meldSelection`]: null,
+      [`/rooms/${roomId}/selectedCardToDiscard`]: null,
+    };
+    db.ref().update(updates);
+  }
+
+  // Generate random room ID (6 uppercase letters)
+  function generateRoomId() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let id = '';
+    for (let i=0; i<6; i++) {
+      id += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return id;
+  }
+
+  // Create room
+  async function createRoom() {
+    roomId = generateRoomId();
+    playerId = 'player1';
+
+    // Initialize game state
+    const deck = createDeck();
+    shuffle(deck);
+    const player1Hand = [];
+    const player2Hand = [];
+    for (let i=0; i<10; i++) {
+      player1Hand.push(deck.pop());
+      player2Hand.push(deck.pop());
+    }
+    const discardPile = [deck.pop()];
+
+    const roomData = {
+      deck,
+      discardPile,
+      player1: {
+        hand: player1Hand,
+        melds: [],
+      },
+      player2: {
+        hand: player2Hand,
+        melds: [],
+      },
+      turn: 'player1',
+      drawnCard: null,
+      scores: {player1: 0, player2: 0},
+      roundOver: false,
+      message: 'Waiting for opponent to join...',
+      meldSelection: null,
+      selectedCardToDiscard: null,
+      players: {
+        player1: true,
+        player2: false,
+      }
+    };
+
+    await db.ref(`/rooms/${roomId}`).set(roomData);
+    lobbyMessage.textContent = `Room created: ${roomId}. Waiting for player 2 to join. Share this ID.`;
+    listenToRoom();
+    showGameUI();
+  }
+
+  // Join room
+  async function joinRoom(id) {
+    if (!id || id.length !== 6) {
+      lobbyMessage.textContent = 'Invalid room ID.';
+      return;
+    }
+    id = id.toUpperCase();
+    const roomSnap = await db.ref(`/rooms/${id}`).get();
+    if (!roomSnap.exists()) {
+      lobbyMessage.textContent = 'Room not found.';
+      return;
+    }
+    const room = roomSnap.val();
+    if (room.players.player2) {
+      lobbyMessage.textContent = 'Room is full.';
+      return;
+    }
+    roomId = id;
+    playerId = 'player2';
+
+    // Mark player2 as joined
+    await db.ref(`/rooms/${roomId}/players/player2`).set(true);
+    // Update message to start game if player1 is ready
+    await db.ref(`/rooms/${roomId}/message`).set('Both players joined. Player 1 starts.');
+
+    listenToRoom();
+    showGameUI();
+  }
+
+  // Listen to room changes
+  function listenToRoom() {
+    if (!roomId) return;
+    if (roomRef) roomRef.off();
+    roomRef = db.ref(`/rooms/${roomId}`);
+    roomRef.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        messagesDiv.textContent = 'Room closed.';
+        resetToLobby();
+        return;
+      }
+      gameData = data;
+
+      // Check if both players joined
+      if (!data.players.player1 || !data.players.player2) {
+        messagesDiv.textContent = 'Waiting for opponent to join...';
+      } else {
+        messagesDiv.textContent = data.message || '';
+      }
+
+      updateUI();
+    });
+  }
+
+  // Show game UI and hide lobby
+  function showGameUI() {
+    lobbyDiv.style.display = 'none';
+    gameDiv.style.display = 'flex';
+  }
+
+  // Reset to lobby UI
+  function resetToLobby() {
+    lobbyDiv.style.display = 'flex';
+    gameDiv.style.display = 'none';
+    roomId = null;
+    playerId = null;
+    gameData = null;
+    selectedCardsForMeld = [];
+    selectedCardToDiscard = null;
+    lobbyMessage.textContent = '';
+    roomIdInput.value = '';
+  }
+
+  // Leave room
+  async function leaveRoom() {
+    if (!roomId || !playerId) return;
+    // Remove player from room
+    await db.ref(`/rooms/${roomId}/players/${playerId}`).remove();
+
+    // If no players left, delete room
+    const roomSnap = await db.ref(`/rooms/${roomId}/players`).get();
+    if (!roomSnap.exists()) {
+      await db.ref(`/rooms/${roomId}`).remove();
+    }
+    resetToLobby();
+  }
+
+  // UI Event Listeners
+  btnCreateRoom.addEventListener('click', () => {
+    createRoom();
+  });
+  btnJoinRoom.addEventListener('click', () => {
+    joinRoom(roomIdInput.value);
+  });
+  deckDiv.addEventListener('click', () => {
+    if (gameData && gameData.turn === playerId && gameData.drawnCard === null && !gameData.roundOver) {
+      drawCard(false);
+    }
+  });
+  discardDiv.addEventListener('click', () => {
+    if (gameData && gameData.turn === playerId && gameData.drawnCard === null && !gameData.roundOver) {
+      drawCard(true);
+    }
+  });
+  btnDraw.addEventListener('click', () => {
+    if (gameData && gameData.turn === playerId && gameData.drawnCard === null && !gameData.roundOver) {
+      drawCard(false);
+    }
+  });
+  btnDiscard.addEventListener('click', () => {
+    discardSelectedCard();
+  });
+  btnCreateMeld.addEventListener('click', () => {
+    createMeld();
+  });
+  btnKnock.addEventListener('click', () => {
+    knock();
+  });
+  btnGin.addEventListener('click', () => {
+    goGin();
+  });
+  btnLeaveRoom.addEventListener('click', () => {
+    leaveRoom();
+  });
+
+  // Player hand card click for discard selection and meld selection
+playerHandDiv.addEventListener('click', (e) => {
+  if (!gameData || gameData.turn !== playerId || gameData.roundOver) return;
+
+  const cardDiv = e.target.closest('.card');
+  if (!cardDiv) return;
+
+  const index = Array.from(playerHandDiv.children).indexOf(cardDiv);
+  if (index === -1) return;
+  const card = gameData[playerId].hand[index];
+
+  // Ensure player has drawn a card before interacting
+  if (gameData.drawnCard === null) {
+    messagesDiv.textContent = 'You must draw a card first.';
+    return;
+  }
+
+  // If discard button is active and no meld is being formed
+  if (!btnDiscard.disabled && selectedCardsForMeld.length === 0) {
+    // If the clicked card is already selected for discard, deselect it
+    if (selectedCardToDiscard && cardEquals(card, selectedCardToDiscard)) {
+      selectedCardToDiscard = null;
+    } else {
+      selectedCardToDiscard = card;
+    }
+    updateUI();
+    return;
+  }
+
+  // Otherwise handle meld selection
+  const idx = selectedCardsForMeld.findIndex(c => cardEquals(c, card));
+  if (idx >= 0) {
+    selectedCardsForMeld.splice(idx, 1);
+  } else {
+    // Prevent selecting card marked for discard
+    if (selectedCardToDiscard && cardEquals(card, selectedCardToDiscard)) {
+      messagesDiv.textContent = 'Cannot select the card you want to discard for meld.';
+      return;
+    }
+    selectedCardsForMeld.push(card);
+  }
+
+  updateUI();
+});
+
+
+  // On page load show lobby
+  resetToLobby();
+
+</script>
+
 </body>
 </html>

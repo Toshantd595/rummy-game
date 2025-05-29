@@ -506,7 +506,7 @@ function sortHand() {
     const currentHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
 
     // Group by suit, sort within suit by rank
-    const suitOrder = ['♠️', '♣️', '♥️', '♦️'];
+    const suitOrder = ['♠', '♣️', '♥', '♦'];
     const rankOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
     const sorted = [...currentHand].sort((a, b) => {
@@ -787,7 +787,7 @@ function drawFromDiscard() {
         }
 
         // Helper functions
-        const suits = ['♥️', '♦️', '♠️', '♣️'];
+const suits = ['♥', '♦', '♠', '♣'];  // ✅ Replace this line
         const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         const cardValues = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10 };
 
@@ -917,10 +917,10 @@ function startGame(roomRef) {
 
     // Assign class based on suit
     let suitClass = '';
-    if (card.suit === '♥️') suitClass = 'heart';
-    else if (card.suit === '♦️') suitClass = 'diamond';
-    else if (card.suit === '♠️') suitClass = 'spade';
-    else if (card.suit === '♣️') suitClass = 'club';
+    if (card.suit === '♥') suitClass = 'heart';
+    else if (card.suit === '♦') suitClass = 'diamond';
+    else if (card.suit === '♠') suitClass = 'spade';
+    else if (card.suit === '♣') suitClass = 'club';
 
     cardDiv.className = `card ${suitClass}`;
       if (index !== null && gameState.selectedCards.includes(index)) {
@@ -946,9 +946,9 @@ function updateDiscardPile(discardPile) {
     const discardElement = document.createElement('div');
 
     let suitClass = '';
-    if (topCard.suit === '♥️') suitClass = 'heart';
-    else if (topCard.suit === '♦️') suitClass = 'diamond';
-    else if (topCard.suit === '♠️') suitClass = 'spade';
+    if (topCard.suit === '♥') suitClass = 'heart';
+    else if (topCard.suit === '♦') suitClass = 'diamond';
+    else if (topCard.suit === '♠') suitClass = 'spade';
     else suitClass = 'club';
 
     discardElement.className = `card ${suitClass}`;
@@ -974,9 +974,9 @@ function displayMelds(melds) {
 }
 
 function getSuitClass(suit) {
-    if (suit === '♥️') return 'heart';
-    if (suit === '♦️') return 'diamond';
-    if (suit === '♠️') return 'spade';
+    if (suit === '♥') return 'heart';
+    if (suit === '♦') return 'diamond';
+    if (suit === '♠') return 'spade';
     return 'club';
 }
 
@@ -985,9 +985,9 @@ function getSuitClass(suit) {
             const discardElement = document.getElementById('discardPile');
             discardElement.style.display = 'flex';
 let suitClass = '';
-if (topCard.suit === '♥️') suitClass = 'heart';
-else if (topCard.suit === '♦️') suitClass = 'diamond';
-else if (topCard.suit === '♠️') suitClass = 'spade';
+if (topCard.suit === '♥') suitClass = 'heart';
+else if (topCard.suit === '♦') suitClass = 'diamond';
+else if (topCard.suit === '♠') suitClass = 'spade';
 else if (topCard.suit === '♣️') suitClass = 'club';
 
 discardElement.className = `card ${suitClass}`;

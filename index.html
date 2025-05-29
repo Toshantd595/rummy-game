@@ -867,25 +867,33 @@ function drawFromDiscard() {
             }
         }
 
-        function updateControlButtons(isMyTurn = null) {
-            if (!gameState.gameData || !gameState.gameData.hands) return;
-            
-            if (isMyTurn === null) {
-                isMyTurn = (gameState.isPlayerOne && gameState.gameData.currentTurn === 1) || 
-                          (!gameState.isPlayerOne && gameState.gameData.currentTurn === 2);
-            }
+function updateControlButtons(isMyTurn = null) {
+    if (!gameState.gameData || !gameState.gameData.hands) return;
+    
+    if (isMyTurn === null) {
+        isMyTurn = (gameState.isPlayerOne && gameState.gameData.currentTurn === 1) || 
+                  (!gameState.isPlayerOne && gameState.gameData.currentTurn === 2);
+    }
 
-            const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
-            const myMelds = gameState.isPlayerOne ? gameState.gameData.melds.player1 : gameState.gameData.melds.player2;
-            
-            if (!myHand || !myMelds) return;
-            
-            const deadwood = calculateDeadwood(myHand, myMelds);
+    const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
+    const myMelds = gameState.isPlayerOne ? gameState.gameData.melds.player1 : gameState.gameData.melds.player2;
+    
+    if (!myHand || !myMelds) return;
+    
+    const deadwood = calculateDeadwood(myHand, myMelds);
+    const hasDrawn = gameState.hasDrawn;
+    const selectedCount = gameState.selectedCards.length;
 
-            document.getElementById('meldBtn').disabled = !isMyTurn || gameState.selectedCards.length < 3;
-            document.getElementById('knockBtn').disabled = !isMyTurn || !gameState.hasDrawn || deadwood > 10;
-            document.getElementById('ginBtn').disabled = !isMyTurn || !gameState.hasDrawn || deadwood > 0;
-        }
+    // Enable Meld only when 3+ cards selected and it's your turn
+    document.getElementById('meldBtn').disabled = !(isMyTurn && selectedCount >= 3);
+    
+    // Enable Discard only when exactly 1 card is selected after drawing
+    document.getElementById('discardBtn').disabled = !(isMyTurn && hasDrawn && selectedCount === 1);
+
+    document.getElementById('knockBtn').disabled = !(isMyTurn && hasDrawn && deadwood <= 10);
+    document.getElementById('ginBtn').disabled = !(isMyTurn && hasDrawn && deadwood === 0);
+}
+
 
         function isValidMeld(cards) {
             if (cards.length < 3) return false;
@@ -1236,6 +1244,7 @@ function drawFromDiscard() {
             <div class="controls">
                 <button class="btn btn-success" id="meldBtn" onclick="showMeldOptions()" disabled>Form Meld</button>
                 <button class="btn btn-primary" id="knockBtn" onclick="knock()" disabled>Knock</button>
+                <button class="btn btn-success" id="discardBtn" onclick="discardCard()" disabled>Discard</button>
                 <button class="btn btn-secondary" id="ginBtn" onclick="gin()" disabled>Gin!</button>
                 <button class="btn btn-secondary" onclick="leaveRoom()">Leave Game</button>
             </div>

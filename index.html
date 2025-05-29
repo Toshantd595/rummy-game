@@ -450,6 +450,43 @@
                 try { document.getElementById('playerName').focus(); } catch(e) {}
             }, 100);
         }
+function sortHand() {
+    if (!gameState.gameData) return;
+
+    const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
+    const currentHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
+
+    // Group by suit, sort within suit by rank
+    const suitOrder = ['♠️', '♣️', '♥️', '♦️'];
+    const rankOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+    const sorted = [...currentHand].sort((a, b) => {
+        const suitDiff = suitOrder.indexOf(a.suit) - suitOrder.indexOf(b.suit);
+        if (suitDiff !== 0) return suitDiff;
+        return rankOrder.indexOf(a.rank) - rankOrder.indexOf(b.rank);
+    });
+
+    const roomRef = database.ref('rooms/' + gameState.roomCode);
+    roomRef.child('hands/' + playerKey).set(sorted);
+}
+
+        function showMeldOptions() {
+    if (!gameState.selectedCards || gameState.selectedCards.length < 3) {
+        alert('Select at least 3 cards to form a meld! 💕');
+        return;
+    }
+
+    const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
+    const selectedCards = gameState.selectedCards.map(index => myHand[index]);
+
+    if (isValidMeld(selectedCards)) {
+        if (confirm("These cards form a valid meld:\n" + selectedCards.map(c => `${c.rank}${c.suit}`).join(", ") + "\nAdd them to your melds?")) {
+            formMeld(selectedCards);
+        }
+    } else {
+        alert('Selected cards do not form a valid meld! 💔');
+    }
+}
 
         function showJoinRoom() {
             document.getElementById('welcomeModal').style.display = 'none';
@@ -1247,6 +1284,7 @@ function updateControlButtons(isMyTurn = null) {
     <button class="btn btn-success" id="meldBtn" onclick="showMeldOptions()" disabled>Form Meld</button>
     <button class="btn btn-primary" id="knockBtn" onclick="knock()" disabled>Knock</button>
     <button class="btn btn-secondary" id="ginBtn" onclick="gin()" disabled>Gin!</button>
+    <button class="btn btn-secondary" id="sortBtn" onclick="sortHand()">Sort Hand</button>
     <button class="btn btn-success" id="discardBtn" onclick="discardCard()" disabled>Discard</button>
     <button class="btn btn-secondary" onclick="leaveRoom()">Leave Game</button>
 </div>

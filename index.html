@@ -599,29 +599,33 @@
             updateControlButtons();
         }
 
-        function drawFromDiscard() {
-            if (!gameState.gameData) return;
-            
-            const data = gameState.gameData;
-            const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) || 
-                           (!gameState.isPlayerOne && data.currentTurn === 2);
+function drawFromDiscard() {
+    if (!gameState.gameData) return;
+    
+    const data = gameState.gameData;
+    const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) || 
+                   (!gameState.isPlayerOne && data.currentTurn === 2);
 
-            if (!isMyTurn || gameState.hasDrawn || data.discardPile.length === 0) return;
+    if (!isMyTurn || gameState.hasDrawn || data.discardPile.length === 0) return;
 
-            const roomRef = database.ref('rooms/' + gameState.roomCode);
-            const drawnCard = data.discardPile[data.discardPile.length - 1];
-            const newDiscardPile = data.discardPile.slice(0, -1);
-            const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
-            const newHand = [...(gameState.isPlayerOne ? data.hands.player1 : data.hands.player2), drawnCard];
+    const roomRef = database.ref('rooms/' + gameState.roomCode);
+    const drawnCard = data.discardPile[data.discardPile.length - 1];
+    const newDiscardPile = data.discardPile.slice(0, -1);
+    const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
+    const newHand = [...(gameState.isPlayerOne ? data.hands.player1 : data.hands.player2), drawnCard];
 
-            roomRef.update({
-                discardPile: newDiscardPile,
-                [`hands/${playerKey}`]: newHand
-            });
+    // ✅ Clear previous discard selection and meld selections
+    selectedCardToDiscard = null;
+    selectedCardsForMeld = [];
 
-            gameState.hasDrawn = true;
-            updateControlButtons();
-        }
+    roomRef.update({
+        discardPile: newDiscardPile,
+        [`hands/${playerKey}`]: newHand
+    });
+
+    gameState.hasDrawn = true;
+    updateControlButtons();
+}
 
         function showMeldOptions() {
             if (gameState.selectedCards.length < 3) {

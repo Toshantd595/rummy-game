@@ -113,27 +113,24 @@
     function App() {
       const [room, setRoom] = useState(null);
       const [playerId, setPlayerId] = useState(null);
-      const [players, setPlayers] = useState([]);
+      const [players, setPlayers] = useState({});
       const [hand, setHand] = useState([]);
       const [selected, setSelected] = useState([]);
       const [turn, setTurn] = useState(null);
       const [message, setMessage] = useState("");
       const [winner, setWinner] = useState(null);
 
-      function updatePlayersListener(roomCode) {
-        db.ref(`rooms/${roomCode}/players`).on("value", snap => {
-          const val = snap.val() || {};
-          setPlayers(Object.values(val));
-        });
-      }
-
-      function joinRoom(roomCode, name) {
+      function joinRoom(roomCode) {
+        const name = prompt("Enter your name");
+        if (!name) return;
         const newId = Math.random().toString(36).substr(2, 6);
         setPlayerId(newId);
         setRoom(roomCode);
-        const ref = db.ref(`rooms/${roomCode}/players/${newId}`);
-        ref.set(name);
-        updatePlayersListener(roomCode);
+        db.ref(`rooms/${roomCode}/players/${newId}`).set(name);
+
+        db.ref(`rooms/${roomCode}/players`).on("value", snap => {
+          setPlayers(snap.val() || {});
+        });
       }
 
       function drawCard() {
@@ -153,14 +150,15 @@
         const newHand = hand.filter(c => c !== card);
         db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
         db.ref(`rooms/${room}/discard`).set(card);
-        const other = players.find(p => p !== playerId);
+        const ids = Object.keys(players);
+        const other = ids.find(p => p !== playerId);
         db.ref(`rooms/${room}/turn`).set(other);
         setSelected([]);
       }
 
       function declareWin() {
         if (hand.length === 0) {
-          db.ref(`rooms/${room}/winner`).set(playerId);
+          db.ref(`rooms/${room}/winner`).set(players[playerId]);
         } else {
           setMessage("❌ Meld all cards first!");
         }
@@ -168,10 +166,11 @@
 
       function resetGame() {
         const fullDeck = generateDeck();
-        const hands = {};
         const ids = Object.keys(players);
-        hands[ids[0]] = fullDeck.slice(0, 13);
-        hands[ids[1]] = fullDeck.slice(13, 26);
+        const hands = {
+          [ids[0]]: fullDeck.slice(0, 13),
+          [ids[1]]: fullDeck.slice(13, 26)
+        };
         db.ref(`rooms/${room}`).update({
           deck: fullDeck.slice(26),
           hands,
@@ -184,8 +183,7 @@
       useEffect(() => {
         const hash = window.location.hash.slice(1);
         if (!hash) return;
-        const name = prompt("Enter your name");
-        if (name) joinRoom(hash, name);
+        joinRoom(hash);
 
         db.ref(`rooms/${hash}/hands`).on("value", snap => {
           const allHands = snap.val() || {};
@@ -206,26 +204,24 @@
           <h1 className="text-3xl font-bold love-gradient text-transparent bg-clip-text mb-4">💖 Love Rummy</h1>
 
           {!room && (
-            <>
-              <button
-                className="bg-pink-500 text-white px-6 py-3 rounded-lg shadow m-2"
-                onClick={() => {
-                  const roomCode = prompt("Enter new room code (e.g., LOVE12)");
-                  if (roomCode) {
-                    window.location.hash = roomCode;
-                    window.location.reload();
-                  }
-                }}
-              >Create/Join Room</button>
-            </>
+            <button
+              className="bg-pink-500 text-white px-6 py-3 rounded-lg shadow m-2"
+              onClick={() => {
+                const roomCode = prompt("Enter room code (e.g., LOVE12)");
+                if (roomCode) {
+                  window.location.hash = roomCode;
+                  window.location.reload();
+                }
+              }}
+            >Create/Join Room</button>
           )}
 
           {room && (
             <>
               <h2 className="text-lg text-pink-700">Room: {room}</h2>
-              <h3 className="text-md text-gray-600">Players: {players.join(", ")}</h3>
+              <h3 className="text-md text-gray-600">Players: {Object.values(players).join(", ")}</h3>
               {winner ? <h3 className="text-green-600 font-bold">🎉 {winner} Wins!</h3> : (
-                <h3 className="mb-2 text-rose-500">{turn === playerId ? "🎯 Your Turn" : "Waiting for opponent..."}</h3>
+                <h3 className="mb-2 text-rose-500">{turn === playerId ? "🎯 Your Turn" : `Waiting for ${players[turn] || 'opponent'}...`}</h3>
               )}
 
               <div className="flex flex-wrap justify-center mb-4">

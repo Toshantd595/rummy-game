@@ -1,259 +1,506 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Love Rummy</title>
-  <meta name="description" content="Multiplayer Rummy Game with Love Theme" />
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-  <!-- React + Babel -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script>
-    Babel.registerPreset("react", {
-      presets: [Babel.availablePresets["react"]],
-    });
-  </script>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            rose: { 500: "#f43f5e", 700: "#be123c" },
-            pink: { 500: "#ec4899", 600: "#db2777" },
-          },
-        },
-      },
-    };
-  </script>
-
-  <style>
-    body {
-      background: linear-gradient(to bottom right, #fdf2f8, #fce7f3, #fbcfe8);
-      font-family: 'Segoe UI', sans-serif;
-    }
-    .love-gradient {
-      background: linear-gradient(to right, #f472b6, #fb7185, #f472b6);
-    }
-    .card {
-      width: 40px;
-      height: 60px;
-      border-radius: 6px;
-      text-align: center;
-      padding-top: 12px;
-      font-size: 18px;
-      font-weight: bold;
-      background-color: white;
-      border: 2px solid #fb7185;
-      margin: 2px;
-      box-shadow: 1px 1px 4px rgba(0,0,0,0.2);
-    }
-    .selected {
-      transform: translateY(-10px);
-      border-color: #db2777;
-    }
-    .red-suit {
-      color: #e11d48;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Love Themed Gin Rummy</title>
+<style>
+  body {
+    background: linear-gradient(135deg, #fceabb, #f8b500);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #800000;
+    margin: 0; padding: 0;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
+  }
+  header {
+    background: #ff4d6d;
+    width: 100%;
+    padding: 1rem;
+    text-align: center;
+    color: white;
+    font-size: 2rem;
+    font-weight: bold;
+    font-family: 'Cursive', cursive;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  }
+  #game {
+    margin-top: 1rem;
+    width: 90vw;
+    max-width: 900px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  #player-hand, #opponent-hand, #melds {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.5rem;
+    border: 1px solid #f8b500;
+    border-radius: 10px;
+    background: #fff0f0;
+  }
+  .card {
+    width: 60px;
+    height: 90px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 5px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #800000;
+  }
+  .card.red {
+    color: #d22;
+  }
+  .card .top-left, .card .bottom-right {
+    font-size: 1rem;
+  }
+  .card .suit {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  #deck, #discard {
+    width: 70px;
+    height: 100px;
+    border-radius: 10px;
+    background: #f8b500;
+    box-shadow: inset 0 0 10px #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #800000;
+    cursor: pointer;
+    user-select: none;
+  }
+  #controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+  button {
+    background: #ff4d6d;
+    border: none;
+    color: white;
+    padding: 0.7rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    transition: background 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background: #d43a58;
+  }
+  button:disabled {
+    background: #ffa3b1;
+    cursor: not-allowed;
+  }
+  #messages {
+    min-height: 2rem;
+    font-weight: bold;
+    text-align: center;
+  }
+  #scoreboard {
+    display: flex;
+    justify-content: space-around;
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+  /* Love theme hearts */
+  .heart {
+    color: #ff4d6d;
+    font-size: 1.2rem;
+    margin-left: 0.3rem;
+  }
+</style>
 </head>
 <body>
-  <div id="root"></div>
 
-  <script type="text/babel" data-presets="react">
-    const { useState, useEffect } = React;
+<header>❤️ Love Themed Gin Rummy ❤️</header>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
-      authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
-      databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "rummy-multiplayer-fe391",
-      storageBucket: "rummy-multiplayer-fe391.appspot.com",
-      messagingSenderId: "717212591323",
-      appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
-    };
+<div id="game">
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  <div id="scoreboard">
+    <div>Player Score: <span id="player-score">0</span> <span class="heart">♥</span></div>
+    <div>Opponent Score: <span id="opponent-score">0</span> <span class="heart">♥</span></div>
+  </div>
 
-    function generateDeck() {
-      const suits = ["♠", "♥", "♦", "♣"];
-      const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-      const deck = [];
-      for (let suit of suits) {
-        for (let value of values) {
-          deck.push(value + suit);
+  <div>
+    <strong>Opponent's Hand</strong>
+    <div id="opponent-hand"></div>
+  </div>
+
+  <div style="display:flex; justify-content:center; gap: 1rem; margin: 1rem 0;">
+    <div>
+      <div id="deck" title="Draw Pile">Deck</div>
+      <small>Draw Pile</small>
+    </div>
+    <div>
+      <div id="discard" title="Discard Pile">Discard</div>
+      <small>Discard Pile</small>
+    </div>
+  </div>
+
+  <div>
+    <strong>Your Hand</strong>
+    <div id="player-hand"></div>
+  </div>
+
+  <div id="melds">
+    <!-- Melded cards will appear here -->
+  </div>
+
+  <div id="controls">
+    <button id="btn-draw" disabled>Draw Card</button>
+    <button id="btn-knock" disabled>Knock</button>
+    <button id="btn-gin" disabled>Go Gin</button>
+    <button id="btn-newgame">New Game</button>
+  </div>
+
+  <div id="messages"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+<script>
+  // Initialize Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
+    authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
+    databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "rummy-multiplayer-fe391",
+    storageBucket: "rummy-multiplayer-fe391.firebasestorage.app",
+    messagingSenderId: "717212591323",
+    appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
+  // Card utilities
+  const suits = ['♠', '♥', '♦', '♣'];
+  const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const cardValues = {
+    'A': 1, '2': 2, '3': 3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10,
+    'J':10, 'Q':10, 'K':10
+  };
+
+  // Game state
+  let deck = [];
+  let discardPile = [];
+  let playerHand = [];
+  let opponentHand = [];
+  let playerMelds = [];
+  let opponentMelds = [];
+  let playerScore = 0;
+  let opponentScore = 0;
+  let playerTurn = false;
+  let drawnCard = null;
+  let gameOver = false;
+
+  // UI Elements
+  const playerHandDiv = document.getElementById('player-hand');
+  const opponentHandDiv = document.getElementById('opponent-hand');
+  const deckDiv = document.getElementById('deck');
+  const discardDiv = document.getElementById('discard');
+  const btnDraw = document.getElementById('btn-draw');
+  const btnKnock = document.getElementById('btn-knock');
+  const btnGin = document.getElementById('btn-gin');
+  const btnNewGame = document.getElementById('btn-newgame');
+  const messagesDiv = document.getElementById('messages');
+  const playerScoreSpan = document.getElementById('player-score');
+  const opponentScoreSpan = document.getElementById('opponent-score');
+  const meldsDiv = document.getElementById('melds');
+
+  // Helpers
+  function createDeck() {
+    const d = [];
+    for (const s of suits) {
+      for (const r of ranks) {
+        d.push({suit: s, rank: r});
+      }
+    }
+    return d;
+  }
+
+  function shuffle(array) {
+    for (let i = array.length -1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i+1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  function cardToString(card) {
+    return card.rank + card.suit;
+  }
+
+  function renderCard(card, clickable = false, onClick = null) {
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'card';
+    if (card.suit === '♥' || card.suit === '♦') cardDiv.classList.add('red');
+    cardDiv.innerHTML = `
+      <div class="top-left">${card.rank}</div>
+      <div class="suit">${card.suit}</div>
+      <div class="bottom-right">${card.rank}</div>
+    `;
+    if (clickable) {
+      cardDiv.style.cursor = 'pointer';
+      cardDiv.addEventListener('click', () => {
+        if (onClick) onClick(card);
+      });
+    }
+    return cardDiv;
+  }
+
+  function renderHand(hand, container, clickable = false, onClick = null, hideCards = false) {
+    container.innerHTML = '';
+    hand.forEach(card => {
+      if (hideCards) {
+        const back = document.createElement('div');
+        back.className = 'card';
+        back.style.background = '#800000';
+        back.style.color = '#f8b500';
+        back.style.textAlign = 'center';
+        back.style.fontSize = '2rem';
+        back.style.userSelect = 'none';
+        back.textContent = '♥';
+        container.appendChild(back);
+      } else {
+        container.appendChild(renderCard(card, clickable, onClick));
+      }
+    });
+  }
+
+  function updateUI() {
+    renderHand(playerHand, playerHandDiv, true, onPlayerCardClick);
+    renderHand(opponentHand, opponentHandDiv, false, null, true);
+    deckDiv.textContent = deck.length > 0 ? `Deck\n(${deck.length})` : 'Deck\n(0)';
+    discardDiv.textContent = discardPile.length > 0 ? cardToString(discardPile[discardPile.length-1]) : 'Discard';
+    playerScoreSpan.textContent = playerScore;
+    opponentScoreSpan.textContent = opponentScore;
+    meldsDiv.innerHTML = `<strong>Your Melds:</strong> ${playerMelds.map(m => m.map(cardToString).join(', ')).join(' | ')}`;
+    btnDraw.disabled = !playerTurn || drawnCard !== null || gameOver;
+    btnKnock.disabled = !playerTurn || drawnCard === null || gameOver || calculateDeadwood(playerHand) > 10;
+    btnGin.disabled = !playerTurn || drawnCard === null || gameOver || calculateDeadwood(playerHand) !== 0;
+  }
+
+  function drawCard(fromDiscard = false) {
+    if (!playerTurn || drawnCard !== null || gameOver) return;
+    if (fromDiscard) {
+      if (discardPile.length === 0) return;
+      drawnCard = discardPile.pop();
+    } else {
+      if (deck.length === 0) {
+        endRound();
+        return;
+      }
+      drawnCard = deck.pop();
+    }
+    playerHand.push(drawnCard);
+    messagesDiv.textContent = `You drew ${cardToString(drawnCard)}. Select a card to discard.`;
+    updateUI();
+  }
+
+  function discardCard(card) {
+    if (!playerTurn || drawnCard === null || gameOver) return;
+    // Remove card from player hand
+    const idx = playerHand.findIndex(c => c.rank === card.rank && c.suit === card.suit);
+    if (idx === -1) return;
+    playerHand.splice(idx, 1);
+    discardPile.push(card);
+    drawnCard = null;
+    messagesDiv.textContent = `You discarded ${cardToString(card)}. Opponent's turn.`;
+    playerTurn = false;
+    updateUI();
+    setTimeout(opponentTurn, 1500);
+  }
+
+  function onPlayerCardClick(card) {
+    if (drawnCard === null) {
+      messagesDiv.textContent = 'You must draw a card first.';
+      return;
+    }
+    discardCard(card);
+  }
+
+  // Calculate deadwood points (cards not in melds)
+  // For simplicity, we do a naive approach: no meld detection, just sum all cards as deadwood
+  // To implement meld detection, more complex logic is needed.
+  function calculateDeadwood(hand) {
+    // TODO: Implement meld detection and deadwood calculation properly
+    // For demonstration, consider all cards as deadwood
+    return hand.reduce((sum, c) => sum + cardValues[c.rank], 0);
+  }
+
+  // Simple opponent AI: draw from deck, discard highest deadwood card
+  function opponentTurn() {
+    if (gameOver) return;
+    messagesDiv.textContent = "Opponent's turn...";
+    setTimeout(() => {
+      // Draw card from deck or discard pile if matches meld (simplified: always deck)
+      if (deck.length === 0) {
+        endRound();
+        return;
+      }
+      opponentHand.push(deck.pop());
+
+      // Discard highest value card
+      let maxVal = -1;
+      let discardIdx = 0;
+      for (let i=0; i<opponentHand.length; i++) {
+        const val = cardValues[opponentHand[i].rank];
+        if (val > maxVal) {
+          maxVal = val;
+          discardIdx = i;
         }
       }
-      return [...deck, ...deck].sort(() => Math.random() - 0.5);
+      const discarded = opponentHand.splice(discardIdx,1)[0];
+      discardPile.push(discarded);
+      messagesDiv.textContent = `Opponent discarded a card. Your turn to draw.`;
+      playerTurn = true;
+      updateUI();
+    }, 1500);
+  }
+
+  function knock() {
+    if (!playerTurn || drawnCard === null || gameOver) return;
+    const deadwood = calculateDeadwood(playerHand);
+    if (deadwood > 10) {
+      messagesDiv.textContent = 'Cannot knock with deadwood > 10.';
+      return;
+    }
+    messagesDiv.textContent = `You knocked with deadwood ${deadwood}. Round ends.`;
+    gameOver = true;
+    calculateScores(true);
+  }
+
+  function goGin() {
+    if (!playerTurn || drawnCard === null || gameOver) return;
+    const deadwood = calculateDeadwood(playerHand);
+    if (deadwood !== 0) {
+      messagesDiv.textContent = 'You can only go Gin with zero deadwood.';
+      return;
+    }
+    messagesDiv.textContent = 'You went Gin! Round ends.';
+    gameOver = true;
+    calculateScores(false, true);
+  }
+
+  function calculateScores(knocked = false, gin = false) {
+    // Simplified scoring: player wins if deadwood less than opponent
+    const playerDeadwood = calculateDeadwood(playerHand);
+    const opponentDeadwood = calculateDeadwood(opponentHand);
+    let playerRoundScore = 0;
+    let opponentRoundScore = 0;
+
+    if (gin) {
+      playerRoundScore = 25 + opponentDeadwood;
+    } else if (knocked) {
+      if (playerDeadwood < opponentDeadwood) {
+        playerRoundScore = opponentDeadwood - playerDeadwood;
+      } else {
+        // Undercut: opponent gets 10 points plus difference
+        opponentRoundScore = 10 + playerDeadwood - opponentDeadwood;
+      }
+    } else {
+      // Round ended by deck empty - no score
+      messagesDiv.textContent += ' Round ended with no score.';
     }
 
-    function Card({ card, selected, toggle }) {
-      const suit = card.slice(-1);
-      const value = card.slice(0, -1);
-      const isRed = suit === "♥" || suit === "♦";
-      return (
-        <div
-          onClick={toggle}
-          className={`card ${selected ? "selected" : ""} ${isRed ? "red-suit" : ""}`}
-        >
-          {value + suit}
-        </div>
-      );
+    playerScore += playerRoundScore;
+    opponentScore += opponentRoundScore;
+
+    playerScoreSpan.textContent = playerScore;
+    opponentScoreSpan.textContent = opponentScore;
+
+    messagesDiv.textContent += ` Scores - You: ${playerScore} Opponent: ${opponentScore}`;
+
+    if (playerScore >= 100) {
+      messagesDiv.textContent += ' You won the game! 🎉';
+    } else if (opponentScore >= 100) {
+      messagesDiv.textContent += ' Opponent won the game.';
     }
 
-    function App() {
-      const [room, setRoom] = useState(null);
-      const [playerId, setPlayerId] = useState(null);
-      const [players, setPlayers] = useState({});
-      const [hand, setHand] = useState([]);
-      const [selected, setSelected] = useState([]);
-      const [turn, setTurn] = useState(null);
-      const [message, setMessage] = useState("");
-      const [winner, setWinner] = useState(null);
+    btnDraw.disabled = true;
+    btnKnock.disabled = true;
+    btnGin.disabled = true;
+  }
 
-      function joinRoom(roomCode) {
-        const name = prompt("Enter your name");
-        if (!name) return;
-        const newId = Math.random().toString(36).substr(2, 6);
-        setPlayerId(newId);
-        setRoom(roomCode);
-        db.ref(`rooms/${roomCode}/players/${newId}`).set(name);
+  function endRound() {
+    messagesDiv.textContent = 'Deck is empty. Round ends.';
+    gameOver = true;
+    calculateScores();
+  }
 
-        db.ref(`rooms/${roomCode}/players`).on("value", snap => {
-          setPlayers(snap.val() || {});
-        });
-      }
-
-      function drawCard() {
-        if (turn !== playerId) return;
-        db.ref(`rooms/${room}/deck`).once("value", snap => {
-          const deck = snap.val() || [];
-          if (!deck.length) return;
-          const card = deck.pop();
-          db.ref(`rooms/${room}/deck`).set(deck);
-          const newHand = [...hand, card];
-          db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
-        });
-      }
-
-      function discardCard(card) {
-        if (turn !== playerId) return;
-        const newHand = hand.filter(c => c !== card);
-        db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
-        db.ref(`rooms/${room}/discard`).set(card);
-        const ids = Object.keys(players);
-        const other = ids.find(p => p !== playerId);
-        db.ref(`rooms/${room}/turn`).set(other);
-        setSelected([]);
-      }
-
-      function declareWin() {
-        if (hand.length === 0) {
-          db.ref(`rooms/${room}/winner`).set(players[playerId]);
-        } else {
-          setMessage("❌ Meld all cards first!");
-        }
-      }
-
-      function resetGame() {
-        const fullDeck = generateDeck();
-        const ids = Object.keys(players);
-        const hands = {
-          [ids[0]]: fullDeck.slice(0, 13),
-          [ids[1]]: fullDeck.slice(13, 26)
-        };
-        db.ref(`rooms/${room}`).update({
-          deck: fullDeck.slice(26),
-          hands,
-          turn: ids[0],
-          discard: null,
-          winner: null
-        });
-      }
-
-      useEffect(() => {
-        const hash = window.location.hash.slice(1);
-        if (!hash) return;
-        joinRoom(hash);
-
-        db.ref(`rooms/${hash}/hands`).on("value", snap => {
-          const allHands = snap.val() || {};
-          if (playerId && allHands[playerId]) setHand(allHands[playerId]);
-        });
-
-        db.ref(`rooms/${hash}/turn`).on("value", snap => {
-          if (snap.exists()) setTurn(snap.val());
-        });
-
-        db.ref(`rooms/${hash}/winner`).on("value", snap => {
-          if (snap.exists()) setWinner(snap.val());
-        });
-      }, [playerId]);
-
-      return (
-        <div className="p-4 text-center">
-          <h1 className="text-3xl font-bold love-gradient text-transparent bg-clip-text mb-4">💖 Love Rummy</h1>
-
-          {!room && (
-            <button
-              className="bg-pink-500 text-white px-6 py-3 rounded-lg shadow m-2"
-              onClick={() => {
-                const roomCode = prompt("Enter room code (e.g., LOVE12)");
-                if (roomCode) {
-                  window.location.hash = roomCode;
-                  window.location.reload();
-                }
-              }}
-            >Create/Join Room</button>
-          )}
-
-          {room && (
-            <>
-              <h2 className="text-lg text-pink-700">Room: {room}</h2>
-              <h3 className="text-md text-gray-600">Players: {Object.values(players).join(", ")}</h3>
-              {winner ? <h3 className="text-green-600 font-bold">🎉 {winner} Wins!</h3> : (
-                <h3 className="mb-2 text-rose-500">{turn === playerId ? "🎯 Your Turn" : `Waiting for ${players[turn] || 'opponent'}...`}</h3>
-              )}
-
-              <div className="flex flex-wrap justify-center mb-4">
-                {hand.map(card => (
-                  <Card
-                    key={card}
-                    card={card}
-                    selected={selected.includes(card)}
-                    toggle={() =>
-                      setSelected(prev => prev.includes(card) ? prev.filter(c => c !== card) : [...prev, card])
-                    }
-                  />
-                ))}
-              </div>
-
-              {!winner && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  <button onClick={drawCard} className="bg-purple-500 text-white px-4 py-2 rounded">Draw</button>
-                  <button onClick={() => discardCard(selected[0])} className="bg-rose-500 text-white px-4 py-2 rounded">Discard</button>
-                  <button onClick={declareWin} className="bg-green-500 text-white px-4 py-2 rounded">Declare</button>
-                  <button onClick={resetGame} className="bg-gray-400 text-white px-4 py-2 rounded">Restart</button>
-                </div>
-              )}
-
-              <p className="mt-4 text-pink-600">{message}</p>
-            </>
-          )}
-        </div>
-      );
+  function newGame() {
+    deck = createDeck();
+    shuffle(deck);
+    discardPile = [];
+    playerHand = [];
+    opponentHand = [];
+    playerMelds = [];
+    opponentMelds = [];
+    playerScore = 0;
+    opponentScore = 0;
+    playerTurn = true;
+    drawnCard = null;
+    gameOver = false;
+    // Deal 10 cards each
+    for (let i=0; i<10; i++) {
+      playerHand.push(deck.pop());
+      opponentHand.push(deck.pop());
     }
+    // Flip top card to discard pile
+    discardPile.push(deck.pop());
+    messagesDiv.textContent = 'New game started. Your turn to draw.';
+    updateUI();
+  }
 
-    ReactDOM.render(<App />, document.getElementById("root"));
-  </script>
+  // Event listeners
+  deckDiv.addEventListener('click', () => {
+    if (playerTurn && drawnCard === null && !gameOver) {
+      drawCard(false);
+    }
+  });
+  discardDiv.addEventListener('click', () => {
+    if (playerTurn && drawnCard === null && !gameOver && discardPile.length > 0) {
+      drawCard(true);
+    }
+  });
+  btnDraw.addEventListener('click', () => {
+    if (playerTurn && drawnCard === null && !gameOver) {
+      drawCard(false);
+    }
+  });
+  btnKnock.addEventListener('click', () => {
+    knock();
+  });
+  btnGin.addEventListener('click', () => {
+    goGin();
+  });
+  btnNewGame.addEventListener('click', () => {
+    newGame();
+  });
+
+  // Start game on load
+  newGame();
+
+</script>
+
 </body>
 </html>

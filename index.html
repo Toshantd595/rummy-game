@@ -686,23 +686,20 @@ function sortHand() {
         }
 
 function drawFromDiscard() {
-    if (!gameState.gameData) return;
-    
-    const data = gameState.gameData;
-    const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) || 
-                   (!gameState.isPlayerOne && data.currentTurn === 2);
+    if (!gameState.gameData || gameState.hasDrawn) return;
 
-    if (!isMyTurn || gameState.hasDrawn || data.discardPile.length === 0) return;
+    const data = gameState.gameData;
+    const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) ||
+                     (!gameState.isPlayerOne && data.currentTurn === 2);
+
+    if (!isMyTurn || data.discardPile.length === 0) return;
 
     const roomRef = database.ref('rooms/' + gameState.roomCode);
     const drawnCard = data.discardPile[data.discardPile.length - 1];
     const newDiscardPile = data.discardPile.slice(0, -1);
     const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
-    const newHand = [...(gameState.isPlayerOne ? data.hands.player1 : data.hands.player2), drawnCard];
-
-    // ✅ Clear previous discard selection and meld selections
-gameState.selectedCards = [];
-
+    const currentHand = data.hands[playerKey];
+    const newHand = [...currentHand, drawnCard];
 
     roomRef.update({
         discardPile: newDiscardPile,
@@ -710,8 +707,10 @@ gameState.selectedCards = [];
     });
 
     gameState.hasDrawn = true;
+    gameState.selectedCards = [];
     updateControlButtons();
 }
+
 
         function showMeldOptions() {
             if (gameState.selectedCards.length < 3) {
@@ -816,8 +815,7 @@ gameState.selectedCards = [];
 
 function startGame(roomRef) {
     const deck = createDeck();
-
-    const discardCard = deck.pop(); // pick discard first
+    const discardCard = deck.pop(); // first card goes to discard
     const player1Hand = deck.splice(0, 10);
     const player2Hand = deck.splice(0, 10);
 
@@ -830,6 +828,7 @@ function startGame(roomRef) {
         'hands/player2': player2Hand
     });
 }
+
 
 
 
@@ -937,6 +936,51 @@ function startGame(roomRef) {
             return cardDiv;
         }
 
+
+function updateDiscardPile(discardPile) {
+    const discardContainer = document.getElementById('discardPile');
+    discardContainer.innerHTML = '';
+    if (!discardPile || discardPile.length === 0) return;
+
+    const topCard = discardPile[discardPile.length - 1];
+    const discardElement = document.createElement('div');
+
+    let suitClass = '';
+    if (topCard.suit === '♥️') suitClass = 'heart';
+    else if (topCard.suit === '♦️') suitClass = 'diamond';
+    else if (topCard.suit === '♠️') suitClass = 'spade';
+    else suitClass = 'club';
+
+    discardElement.className = `card ${suitClass}`;
+    discardElement.innerText = topCard.rank + topCard.suit;
+    discardContainer.appendChild(discardElement);
+}
+
+
+function displayMelds(melds) {
+    const meldArea = document.getElementById('meldArea');
+    meldArea.innerHTML = '';
+    melds.forEach(group => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'meld-group';
+        group.forEach(card => {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = `card ${getSuitClass(card.suit)}`;
+            cardDiv.innerText = card.rank + card.suit;
+            groupDiv.appendChild(cardDiv);
+        });
+        meldArea.appendChild(groupDiv);
+    });
+}
+
+function getSuitClass(suit) {
+    if (suit === '♥️') return 'heart';
+    if (suit === '♦️') return 'diamond';
+    if (suit === '♠️') return 'spade';
+    return 'club';
+}
+
+        
         function updateDiscardPile(topCard) {
             const discardElement = document.getElementById('discardPile');
             discardElement.style.display = 'flex';
@@ -989,6 +1033,7 @@ function updateControlButtons(isMyTurn = null) {
     document.getElementById('meldBtn').disabled = !(isMyTurn && validMeld);
     document.getElementById('discardBtn').disabled = !canDiscard;
 }
+
 
 
 

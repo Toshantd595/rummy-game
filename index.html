@@ -10,6 +10,29 @@
             padding: 0;
             box-sizing: border-box;
         }
+.card.heart {
+    background: linear-gradient(135deg, #cc0000, #990000);
+    color: #fff;
+    border: 2px solid #b30000;
+}
+
+.card.diamond {
+    background: linear-gradient(135deg, #ff6b9d, #ff8a9b);
+    color: #fff;
+    border: 2px solid #ff1744;
+}
+
+.card.spade {
+    background: linear-gradient(135deg, #111, #444);
+    color: #fff;
+    border: 2px solid #000;
+}
+
+.card.club {
+    background: linear-gradient(135deg, #333, #555);
+    color: #fff;
+    border: 2px solid #000;
+}
 
         body {
             font-family: 'Georgia', serif;
@@ -678,8 +701,8 @@ function drawFromDiscard() {
     const newHand = [...(gameState.isPlayerOne ? data.hands.player1 : data.hands.player2), drawnCard];
 
     // ✅ Clear previous discard selection and meld selections
-    selectedCardToDiscard = null;
-    selectedCardsForMeld = [];
+gameState.selectedCards = [];
+
 
     roomRef.update({
         discardPile: newDiscardPile,
@@ -791,21 +814,25 @@ function drawFromDiscard() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
-        function startGame(roomRef) {
-            const deck = createDeck();
-            const player1Hand = deck.splice(0, 10);
-            const player2Hand = deck.splice(0, 10);
-            const discardPile = [deck.pop()];
+function startGame(roomRef) {
+    const deck = createDeck();
 
-            roomRef.update({
-                gameStarted: true,
-                currentTurn: 1,
-                deck: deck,
-                discardPile: discardPile,
-                'hands/player1': player1Hand,
-                'hands/player2': player2Hand
-            });
-        }
+    const discardCard = deck.pop(); // pick discard first
+    const player1Hand = deck.splice(0, 10);
+    const player2Hand = deck.splice(0, 10);
+
+    roomRef.update({
+        gameStarted: true,
+        currentTurn: 1,
+        deck: deck,
+        discardPile: [discardCard],
+        'hands/player1': player1Hand,
+        'hands/player2': player2Hand
+    });
+}
+
+
+
 
         function handleGameUpdate(snapshot) {
             if (!snapshot.exists()) {
@@ -913,7 +940,13 @@ function drawFromDiscard() {
         function updateDiscardPile(topCard) {
             const discardElement = document.getElementById('discardPile');
             discardElement.style.display = 'flex';
-            discardElement.className = `card ${(topCard.suit === '♥️' || topCard.suit === '♦️') ? 'red' : 'black'}`;
+let suitClass = '';
+if (topCard.suit === '♥️') suitClass = 'heart';
+else if (topCard.suit === '♦️') suitClass = 'diamond';
+else if (topCard.suit === '♠️') suitClass = 'spade';
+else if (topCard.suit === '♣️') suitClass = 'club';
+
+discardElement.className = `card ${suitClass}`;
             discardElement.innerHTML = `
                 <div>${topCard.rank}</div>
                 <div style="font-size: 1.5rem;">${topCard.suit}</div>
@@ -946,24 +979,18 @@ function updateControlButtons(isMyTurn = null) {
     }
 
     const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
-    const myMelds = gameState.isPlayerOne ? gameState.gameData.melds.player1 : gameState.gameData.melds.player2;
-
-    if (!myHand || !myMelds) return;
-
     const selectedIndexes = gameState.selectedCards;
     const selectedCards = selectedIndexes.map(index => myHand[index]);
     const hasDrawn = gameState.hasDrawn;
-    const deadwood = calculateDeadwood(myHand, myMelds);
 
-    // Check if selected cards form a valid meld
     const validMeld = selectedCards.length >= 3 && selectedCards.length <= 4 && isValidMeld(selectedCards);
+    const canDiscard = isMyTurn && hasDrawn && selectedCards.length === 1;
 
-    // Button states
     document.getElementById('meldBtn').disabled = !(isMyTurn && validMeld);
-    document.getElementById('discardBtn').disabled = !(isMyTurn && hasDrawn && selectedCards.length === 1);
-    document.getElementById('knockBtn').disabled = !(isMyTurn && hasDrawn && deadwood <= 10);
-    document.getElementById('ginBtn').disabled = !(isMyTurn && hasDrawn && deadwood === 0);
+    document.getElementById('discardBtn').disabled = !canDiscard;
 }
+
+
 
 
 

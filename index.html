@@ -506,7 +506,7 @@ function sortHand() {
     const currentHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
 
     // Group by suit, sort within suit by rank
-    const suitOrder = ['♠', '♣️', '♥', '♦'];
+    const suitOrder = ['♠', '♣', '♥', '♦'];
     const rankOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
     const sorted = [...currentHand].sort((a, b) => {
@@ -816,8 +816,8 @@ const suits = ['♥', '♦', '♠', '♣'];  // ✅ Replace this line
 function startGame(roomRef) {
     const deck = createDeck();
     const discardCard = deck.pop(); // first card goes to discard
-    const player1Hand = deck.splice(0, 10);
-    const player2Hand = deck.splice(0, 10);
+    const player1Hand = deck.splice(0, 7);
+    const player2Hand = deck.splice(0, 7);
 
     roomRef.update({
         gameStarted: true,
@@ -828,6 +828,7 @@ function startGame(roomRef) {
         'hands/player2': player2Hand
     });
 }
+
 
 
 
@@ -988,7 +989,7 @@ let suitClass = '';
 if (topCard.suit === '♥') suitClass = 'heart';
 else if (topCard.suit === '♦') suitClass = 'diamond';
 else if (topCard.suit === '♠') suitClass = 'spade';
-else if (topCard.suit === '♣️') suitClass = 'club';
+else if (topCard.suit === '♣') suitClass = 'club';
 
 discardElement.className = `card ${suitClass}`;
             discardElement.innerHTML = `

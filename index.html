@@ -83,113 +83,98 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function generateDeck() {
-      const suits = ["♠", "♥", "♦", "♣"];
-      const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-      const deck = [];
-      for (let suit of suits) {
-        for (let value of values) {
-          deck.push(value + suit);
-        }
-      }
-      return deck.sort(() => Math.random() - 0.5);
-    }
-
-    function Card({ card, selected, toggle }) {
-      const suit = card.slice(-1);
-      const value = card.slice(0, -1);
-      const isRed = suit === "♥" || suit === "♦";
-      return (
-        <div onClick={toggle} className={`card ${selected ? "selected" : ""} ${isRed ? "red-suit" : ""}`}>{value + suit}</div>
-      );
-    }
-
     function App() {
       const [room, setRoom] = useState(null);
-      const [playerId, setPlayerId] = useState("");
+      const [playerId, setPlayerId] = useState(null);
       const [players, setPlayers] = useState([]);
       const [hand, setHand] = useState([]);
-      const [selected, setSelected] = useState([]);
       const [turn, setTurn] = useState(null);
-      const [message, setMessage] = useState("");
       const [winner, setWinner] = useState(null);
+      const [selected, setSelected] = useState([]);
+      const [message, setMessage] = useState("");
 
       useEffect(() => {
         const hash = window.location.hash.slice(1);
         if (!hash) return;
         setRoom(hash);
+        const id = Math.random().toString(36).substr(2, 6);
+        setPlayerId(id);
 
-        const ref = db.ref(`rooms/${hash}`);
-        ref.once("value", snap => {
-          let data = snap.val();
-          if (!data || !data.players || data.players.length >= 2) return;
+        const playerRef = db.ref(`rooms/${hash}/players/${id}`);
+        playerRef.set(true);
+        playerRef.onDisconnect().remove();
 
-          let newPlayer = data.players.length === 0 ? "player1" : "player2";
-          setPlayerId(newPlayer);
-          ref.child("players").set([...data.players, newPlayer]);
-          ref.child(`hands/${newPlayer}`).on("value", snap => {
-            if (snap.exists()) setHand(snap.val());
-          });
+        db.ref(`rooms/${hash}/players`).on("value", (snap) => {
+          if (snap.exists()) {
+            setPlayers(Object.keys(snap.val()));
+          }
         });
 
-        db.ref(`rooms/${hash}/turn`).on("value", snap => {
+        db.ref(`rooms/${hash}/hands/${id}`).on("value", (snap) => {
+          if (snap.exists()) setHand(snap.val());
+        });
+
+        db.ref(`rooms/${hash}/turn`).on("value", (snap) => {
           if (snap.exists()) setTurn(snap.val());
         });
 
-        db.ref(`rooms/${hash}/winner`).on("value", snap => {
+        db.ref(`rooms/${hash}/winner`).on("value", (snap) => {
           if (snap.exists()) setWinner(snap.val());
         });
       }, []);
 
-      function createRoom() {
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const deck = generateDeck();
-        const hands = {
-          player1: deck.slice(0, 13),
-          player2: deck.slice(13, 26)
-        };
-        db.ref(`rooms/${code}`).set({
-          deck: deck.slice(26),
-          players: [],
-          hands,
-          turn: "player1",
-          winner: null
-        });
-        window.location.hash = code;
-        window.location.reload();
-      }
-
-      function drawCard() {
+      const drawCard = async () => {
         if (turn !== playerId) return;
-        const deckRef = db.ref(`rooms/${room}/deck`);
-        deckRef.once("value", snap => {
-          const deck = snap.val() || [];
-          if (deck.length === 0) return;
-          const drawn = deck.pop();
-          db.ref(`rooms/${room}/deck`).set(deck);
-          const newHand = [...hand, drawn];
-          db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
-        });
-      }
+        const deckSnap = await db.ref(`rooms/${room}/deck`).get();
+        const deck = deckSnap.val() || [];
+        if (deck.length === 0) return;
+        const drawn = deck.pop();
+        await db.ref(`rooms/${room}/deck`).set(deck);
+        const newHand = [...hand, drawn];
+        await db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
+      };
 
-      function discardCard(card) {
-        if (turn !== playerId || !card) return;
+      const discardCard = async () => {
+        if (turn !== playerId || selected.length !== 1) return;
+        const card = selected[0];
         const newHand = hand.filter(c => c !== card);
-        db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
-        const nextPlayer = playerId === "player1" ? "player2" : "player1";
-        db.ref(`rooms/${room}/turn`).set(nextPlayer);
+        await db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
+        await db.ref(`rooms/${room}/discard`).set(card);
+        const nextPlayer = players.find(p => p !== playerId);
+        await db.ref(`rooms/${room}/turn`).set(nextPlayer);
         setSelected([]);
-      }
+      };
 
-      function resetGame() {
-        if (!room) return;
-        createRoom();
-      }
+      const createRoom = async () => {
+        const newRoom = Math.random().toString(36).substr(2, 6).toUpperCase();
+        const deck = shuffleDeck();
+        const p1 = Math.random().toString(36).substr(2, 6);
+        const p2 = Math.random().toString(36).substr(2, 6);
+        const hands = {
+          [p1]: deck.slice(0, 13),
+          [p2]: deck.slice(13, 26),
+        };
+        await db.ref(`rooms/${newRoom}`).set({
+          deck: deck.slice(26),
+          hands,
+          players: {[p1]: true, [p2]: true},
+          turn: p1,
+        });
+        window.location.hash = newRoom;
+        window.location.reload();
+      };
+
+      const shuffleDeck = () => {
+        const suits = ["♠", "♥", "♦", "♣"];
+        const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+        let deck = [];
+        suits.forEach(suit => values.forEach(value => deck.push(value + suit)));
+        return deck.sort(() => Math.random() - 0.5);
+      };
 
       return (
         <div className="p-4 text-center">
           <h1 className="text-3xl font-bold love-gradient text-transparent bg-clip-text mb-4">💖 Love Rummy</h1>
-
           {!room && (
             <>
               <button onClick={createRoom} className="bg-pink-500 text-white px-6 py-3 rounded-lg shadow m-2">Create Room</button>
@@ -206,33 +191,20 @@
           {room && (
             <>
               <h2 className="text-lg text-pink-700">Room: {room}</h2>
-              {winner ? (
-                <h3 className="text-green-600 font-semibold mt-2">🎉 {winner} wins!</h3>
-              ) : (
-                <h3 className="mb-2 text-rose-500">{turn === playerId ? "🎯 Your Turn" : "Waiting..."}</h3>
-              )}
+              {winner ? <h3 className="text-green-600 font-semibold mt-2">🎉 {winner} wins!</h3> : <h3 className="mb-2 text-rose-500">{turn === playerId ? "🎯 Your Turn" : "Waiting..."}</h3>}
 
               <div className="flex flex-wrap justify-center mb-4">
                 {hand.map(card => (
-                  <Card
-                    key={card}
-                    card={card}
-                    selected={selected.includes(card)}
-                    toggle={() =>
-                      setSelected(prev =>
-                        prev.includes(card) ? prev.filter(c => c !== card) : [...prev, card]
-                      )
-                    }
-                  />
+                  <div key={card} onClick={() => setSelected(prev => prev.includes(card) ? prev.filter(c => c !== card) : [...prev, card])} className={`card ${selected.includes(card) ? "selected" : ""} ${(card.includes("♥") || card.includes("♦")) ? "red-suit" : ""}`}>{card}</div>
                 ))}
               </div>
 
-              <div className="flex justify-center gap-2">
-                <button onClick={drawCard} className="bg-purple-500 text-white px-4 py-2 rounded">Draw</button>
-                <button onClick={() => discardCard(selected[0])} className="bg-rose-500 text-white px-4 py-2 rounded">Discard</button>
-                <button onClick={resetGame} className="bg-gray-500 text-white px-4 py-2 rounded">Restart</button>
-              </div>
-
+              {!winner && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button onClick={drawCard} className="bg-purple-500 text-white px-4 py-2 rounded">Draw</button>
+                  <button onClick={discardCard} className="bg-rose-500 text-white px-4 py-2 rounded">Discard</button>
+                </div>
+              )}
               <p className="mt-4 text-pink-600">{message}</p>
             </>
           )}

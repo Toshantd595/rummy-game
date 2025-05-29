@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Love Rummy Rendezvous</title>
-  <meta name="description" content="Play Rummy with Love - Multiplayer Card Game" />
+  <title>Love Rummy</title>
+  <meta name="description" content="Multiplayer Rummy Game with Love Theme" />
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <!-- React + Babel -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script>
-    Babel.registerPreset('react', {
-      presets: [Babel.availablePresets['react']]
+    Babel.registerPreset("react", {
+      presets: [Babel.availablePresets["react"]],
     });
   </script>
 
@@ -23,85 +27,237 @@
       theme: {
         extend: {
           colors: {
-            rose: {
-              50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af',
-              400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c',
-              800: '#9f1239', 900: '#881337'
-            },
-            pink: {
-              50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 300: '#f9a8d4',
-              400: '#f472b6', 500: '#ec4899', 600: '#db2777', 700: '#be185d',
-              800: '#9d174d', 900: '#831843'
-            }
-          },
-          keyframes: {
-            heartbeat: {
-              '0%, 100%': { transform: 'scale(1)' },
-              '50%': { transform: 'scale(1.1)' }
-            },
-            'fade-in': {
-              '0%': { opacity: '0', transform: 'translateY(20px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' }
-            },
-            'slide-in': {
-              '0%': { transform: 'translateX(-100%)', opacity: '0' },
-              '100%': { transform: 'translateX(0)', opacity: '1' }
-            }
+            rose: { 500: "#f43f5e", 700: "#be123c" },
+            pink: { 500: "#ec4899", 600: "#db2777" },
           },
           animation: {
-            heartbeat: 'heartbeat 2s ease-in-out infinite',
-            'fade-in': 'fade-in 0.6s ease-out',
-            'slide-in': 'slide-in 0.5s ease-out'
-          }
-        }
-      }
+            pulseHeart: "pulse 2s infinite",
+          },
+        },
+      },
     };
-  </script>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
-      authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
-      databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "rummy-multiplayer-fe391",
-      storageBucket: "rummy-multiplayer-fe391.firebasestorage.app",
-      messagingSenderId: "717212591323",
-      appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
   </script>
 
   <style>
+    body {
+      background: linear-gradient(to bottom right, #fdf2f8, #fce7f3, #fbcfe8);
+      font-family: 'Segoe UI', sans-serif;
+    }
     .love-gradient {
       background: linear-gradient(to right, #f472b6, #fb7185, #f472b6);
     }
-    .card-shadow {
-      box-shadow: 0 4px 20px rgba(251, 113, 133, 0.15);
+    .card {
+      width: 40px;
+      height: 60px;
+      border-radius: 6px;
+      text-align: center;
+      padding-top: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      background-color: white;
+      border: 2px solid #fb7185;
+      margin: 2px;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.2);
     }
-    .game-table {
-      background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fbcfe8 100%);
-      border: 2px solid rgba(251, 113, 133, 0.2);
-    }
-    body {
-      background: linear-gradient(to bottom right, #fdf2f8, #fce7f3, #fbcfe8);
-      min-height: 100vh;
+    .selected {
+      transform: translateY(-10px);
+      border-color: #db2777;
     }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
-  <!-- React App Script (Paste your React code here) -->
-  <script type="text/babel" data-type="module" data-presets="react">
-    // Your full React app goes here...
-    ReactDOM.render(React.createElement('h1', null, 'Love Rummy App is working!'), document.getElementById('root'));
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1D45vfziD-wqIrDGANAY7GzR0L94BqB8",
+      authDomain: "rummy-multiplayer-fe391.firebaseapp.com",
+      databaseURL: "https://rummy-multiplayer-fe391-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "rummy-multiplayer-fe391",
+      storageBucket: "rummy-multiplayer-fe391.appspot.com",
+      messagingSenderId: "717212591323",
+      appId: "1:717212591323:web:7cb38b16733f7a9b5498fe"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function generateDeck() {
+      const suits = ["♠", "♥", "♦", "♣"];
+      const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+      const deck = [];
+      for (let suit of suits) {
+        for (let value of values) {
+          deck.push(value + suit);
+        }
+      }
+      return deck.sort(() => Math.random() - 0.5);
+    }
+
+    function isValidMeld(cards) {
+      // Example: sequence check for same suit
+      if (cards.length < 3) return false;
+      const suits = cards.map(c => c.slice(-1));
+      const values = cards.map(c => c.slice(0, -1));
+      const allSameSuit = suits.every(s => s === suits[0]);
+      const valueMap = {A:1, J:11, Q:12, K:13};
+      const nums = values.map(v => valueMap[v] || parseInt(v)).sort((a,b)=>a-b);
+      const isSequence = nums.every((n, i) => i === 0 || n === nums[i-1] + 1);
+      return allSameSuit && isSequence;
+    }
+
+    function App() {
+      const [room, setRoom] = useState(null);
+      const [playerId, setPlayerId] = useState(null);
+      const [players, setPlayers] = useState([]);
+      const [hand, setHand] = useState([]);
+      const [selected, setSelected] = useState([]);
+      const [turn, setTurn] = useState(null);
+      const [message, setMessage] = useState("");
+
+
+
+
+
+      
+      function drawCard() {
+        if (turn !== playerId) return;
+        const deckRef = db.ref(`rooms/${room}/deck`);
+        deckRef.once("value", snap => {
+          const deck = snap.val() || [];
+          const drawn = deck.pop();
+          setHand(prev => [...prev, drawn]);
+          deckRef.set(deck);
+        });
+      }
+
+      function discardCard(card) {
+        if (turn !== playerId) return;
+        setHand(prev => prev.filter(c => c !== card));
+        db.ref(`rooms/${room}/discard`).set(card);
+        db.ref(`rooms/${room}/turn`).set(players.find(p => p !== playerId));
+      }
+
+      function meld() {
+        if (isValidMeld(selected)) {
+          setMessage("✅ Valid meld!");
+          setSelected([]);
+        } else {
+          setMessage("❌ Invalid meld!");
+        }
+      }
+
+      function declareWin() {
+        if (hand.length === 0) {
+          db.ref(`rooms/${room}/winner`).set(playerId);
+        } else {
+          setMessage("❌ Meld all cards first!");
+        }
+      }
+
+      function resetGame() {
+        const newDeck = generateDeck();
+        const split = Math.floor(newDeck.length / 2);
+        const hands = {
+          player1: newDeck.slice(0, 13),
+          player2: newDeck.slice(13, 26),
+        };
+        db.ref(`rooms/${room}`).set({
+          deck: newDeck.slice(26),
+          players: players,
+          turn: players[0],
+          hands,
+          discard: null,
+          winner: null,
+        });
+      }
+
+      useEffect(() => {
+        const hash = window.location.hash.slice(1);
+        if (!hash) return;
+        setRoom(hash);
+        const id = Math.random().toString(36).slice(2, 7);
+        setPlayerId(id);
+        const playerRef = db.ref(`rooms/${hash}/players`);
+        playerRef.once("value", snap => {
+          const existing = snap.val() || [];
+          if (!existing.includes(id)) {
+            playerRef.set([...existing, id]);
+          }
+          setPlayers([...existing, id]);
+        });
+        db.ref(`rooms/${hash}/hands/${id}`).on("value", snap => {
+          if (snap.exists()) setHand(snap.val());
+        });
+        db.ref(`rooms/${hash}/turn`).on("value", snap => {
+          if (snap.exists()) setTurn(snap.val());
+        });
+      }, []);
+
+      return (
+        <div className="p-4 text-center">
+          <h1 className="text-3xl font-bold love-gradient text-transparent bg-clip-text mb-4">💖 Love Rummy</h1>
+          {!room && (
+            <button
+              onClick={() => {
+                const newRoom = Math.random().toString(36).substr(2, 6).toUpperCase();
+                setRoom(newRoom);
+                window.location.hash = newRoom;
+                resetGame();
+              }}
+              className="bg-pink-500 text-white px-6 py-3 rounded-lg shadow"
+            >
+              Create Room
+            </button>
+          )}
+          {room && (
+            <>
+              <h2 className="text-lg text-pink-700">Room: {room}</h2>
+              <h3 className="mb-2 text-rose-500">{turn === playerId ? "🎯 Your Turn" : "Waiting..."}</h3>
+              <div className="flex flex-wrap justify-center mb-4">
+                {hand.map(card => (
+                  <div
+                    key={card}
+                    className={`card ${selected.includes(card) ? "selected" : ""}`}
+                    onClick={() =>
+                      setSelected(prev =>
+                        prev.includes(card)
+                          ? prev.filter(c => c !== card)
+                          : [...prev, card]
+                      )
+                    }
+                  >
+                    {card}
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button onClick={drawCard} className="bg-purple-500 text-white px-4 py-2 rounded">
+                  Draw
+                </button>
+                <button onClick={() => discardCard(selected[0])} className="bg-rose-500 text-white px-4 py-2 rounded">
+                  Discard
+                </button>
+                <button onClick={meld} className="bg-yellow-500 text-white px-4 py-2 rounded">
+                  Meld
+                </button>
+                <button onClick={declareWin} className="bg-green-500 text-white px-4 py-2 rounded">
+                  Declare
+                </button>
+                <button onClick={resetGame} className="bg-gray-400 text-white px-4 py-2 rounded">
+                  Restart
+                </button>
+              </div>
+              <p className="mt-4 text-pink-600">{message}</p>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById("root"));
   </script>
 </body>
 </html>

@@ -140,6 +140,32 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         }
 
+
+        .card.heart {
+    background: linear-gradient(135deg, #cc0000, #990000);
+    color: #fff;
+    border: 2px solid #b30000;
+}
+
+.card.diamond {
+    background: linear-gradient(135deg, #ff6b9d, #ff8a9b);
+    color: #fff;
+    border: 2px solid #ff1744;
+}
+
+.card.spade {
+    background: linear-gradient(135deg, #111, #444);
+    color: #fff;
+    border: 2px solid #000;
+}
+
+/* Optional: Keep club unchanged or add this if you want visual consistency */
+.card.club {
+    background: linear-gradient(135deg, #333, #555);
+    color: #fff;
+    border: 2px solid #000;
+}
+
         .card.red {
             background: linear-gradient(135deg, #ff6b9d, #ff8a9b);
             color: #fff;
@@ -860,10 +886,18 @@ function drawFromDiscard() {
             });
         }
 
-        function createCardElement(card, index = null) {
-            const cardDiv = document.createElement('div');
-            cardDiv.className = `card ${(card.suit === '♥️' || card.suit === '♦️') ? 'red' : 'black'}`;
-            if (index !== null && gameState.selectedCards.includes(index)) {
+  function createCardElement(card, index = null) {
+    const cardDiv = document.createElement('div');
+
+    // Assign class based on suit
+    let suitClass = '';
+    if (card.suit === '♥️') suitClass = 'heart';
+    else if (card.suit === '♦️') suitClass = 'diamond';
+    else if (card.suit === '♠️') suitClass = 'spade';
+    else if (card.suit === '♣️') suitClass = 'club';
+
+    cardDiv.className = `card ${suitClass}`;
+      if (index !== null && gameState.selectedCards.includes(index)) {
                 cardDiv.classList.add('selected');
             }
             
@@ -887,28 +921,27 @@ function drawFromDiscard() {
             `;
         }
 
-        function selectCard(index) {
-            if (!gameState.gameData || !gameState.gameData.hands) return;
-            
-            const selectedIndex = gameState.selectedCards.indexOf(index);
-            if (selectedIndex > -1) {
-                gameState.selectedCards.splice(selectedIndex, 1);
-            } else {
-                gameState.selectedCards.push(index);
-            }
-            
-            const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
-            if (myHand) {
-                updateHandDisplay(myHand);
-                updateControlButtons();
-            }
-        }
+function selectCard(index) {
+    if (!gameState.gameData || !gameState.gameData.hands) return;
+
+    const selectedIndex = gameState.selectedCards.indexOf(index);
+    if (selectedIndex > -1) {
+        gameState.selectedCards.splice(selectedIndex, 1);
+    } else {
+        gameState.selectedCards.push(index);
+    }
+
+    const myHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
+    updateHandDisplay(myHand);
+    updateControlButtons(); // 🔁 recheck after selection
+}
+
 
 function updateControlButtons(isMyTurn = null) {
     if (!gameState.gameData || !gameState.gameData.hands) return;
 
     if (isMyTurn === null) {
-        isMyTurn = (gameState.isPlayerOne && gameState.gameData.currentTurn === 1) || 
+        isMyTurn = (gameState.isPlayerOne && gameState.gameData.currentTurn === 1) ||
                   (!gameState.isPlayerOne && gameState.gameData.currentTurn === 2);
     }
 
@@ -919,14 +952,14 @@ function updateControlButtons(isMyTurn = null) {
 
     const selectedIndexes = gameState.selectedCards;
     const selectedCards = selectedIndexes.map(index => myHand[index]);
-    const deadwood = calculateDeadwood(myHand, myMelds);
     const hasDrawn = gameState.hasDrawn;
+    const deadwood = calculateDeadwood(myHand, myMelds);
 
-    // Validate if selected cards form a valid meld (3 or more)
-    const isValidSelectedMeld = selectedCards.length >= 3 && isValidMeld(selectedCards);
+    // Check if selected cards form a valid meld
+    const validMeld = selectedCards.length >= 3 && selectedCards.length <= 4 && isValidMeld(selectedCards);
 
-    // Enable buttons conditionally
-    document.getElementById('meldBtn').disabled = !(isMyTurn && isValidSelectedMeld);
+    // Button states
+    document.getElementById('meldBtn').disabled = !(isMyTurn && validMeld);
     document.getElementById('discardBtn').disabled = !(isMyTurn && hasDrawn && selectedCards.length === 1);
     document.getElementById('knockBtn').disabled = !(isMyTurn && hasDrawn && deadwood <= 10);
     document.getElementById('ginBtn').disabled = !(isMyTurn && hasDrawn && deadwood === 0);

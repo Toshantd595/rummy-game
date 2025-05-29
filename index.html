@@ -40,43 +40,33 @@
       background: linear-gradient(to bottom right, #fdf2f8, #fce7f3, #fbcfe8);
       font-family: 'Segoe UI', sans-serif;
     }
+    .love-gradient {
+      background: linear-gradient(to right, #f472b6, #fb7185, #f472b6);
+    }
     .card {
-      width: 50px;
-      height: 70px;
+      width: 40px;
+      height: 60px;
       border-radius: 6px;
-      background: white;
-      border: 2px solid #fb7185;
+      text-align: center;
+      padding-top: 12px;
+      font-size: 18px;
       font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 4px;
-      box-shadow: 1px 1px 5px rgba(0,0,0,0.1);
-      cursor: pointer;
+      background-color: white;
+      border: 2px solid #fb7185;
+      margin: 2px;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.2);
     }
     .selected {
       transform: translateY(-10px);
       border-color: #db2777;
     }
-    .card-back {
-      width: 50px;
-      height: 70px;
-      border-radius: 6px;
-      background: repeating-linear-gradient(
-        45deg,
-        #fb7185,
-        #fb7185 5px,
-        #fbcfe8 5px,
-        #fbcfe8 10px
-      );
-      border: 2px solid #be123c;
-      margin: 4px;
+    .red-suit {
+      color: #e11d48;
     }
   </style>
 </head>
 <body>
   <div id="root"></div>
-
   <script type="text/babel" data-presets="react">
     const { useState, useEffect } = React;
 
@@ -105,6 +95,31 @@
       return deck.sort(() => Math.random() - 0.5);
     }
 
+    function isValidMeld(cards) {
+      if (cards.length < 3) return false;
+      const suits = cards.map(c => c.slice(-1));
+      const values = cards.map(c => c.slice(0, -1));
+      const allSameSuit = suits.every(s => s === suits[0]);
+      const valueMap = {A:1, J:11, Q:12, K:13};
+      const nums = values.map(v => valueMap[v] || parseInt(v)).sort((a,b)=>a-b);
+      const isSequence = nums.every((n, i) => i === 0 || n === nums[i-1] + 1);
+      return allSameSuit && isSequence;
+    }
+
+    function Card({ card, selected, toggle }) {
+      const suit = card.slice(-1);
+      const value = card.slice(0, -1);
+      const isRed = suit === "♥" || suit === "♦";
+      return (
+        <div
+          onClick={toggle}
+          className={`card ${selected ? "selected" : ""} ${isRed ? "red-suit" : ""}`}
+        >
+          {value + suit}
+        </div>
+      );
+    }
+
     function App() {
       const [room, setRoom] = useState(null);
       const [playerId, setPlayerId] = useState(null);
@@ -112,173 +127,164 @@
       const [hand, setHand] = useState([]);
       const [selected, setSelected] = useState([]);
       const [turn, setTurn] = useState(null);
-      const [deck, setDeck] = useState([]);
-      const [opponentCards, setOpponentCards] = useState(0);
-      const [hasDrawn, setHasDrawn] = useState(false);
       const [message, setMessage] = useState("");
-      const [roomInput, setRoomInput] = useState("");
+      const [winner, setWinner] = useState(null);
 
-const joinRoom = (code) => {
-  const id = Math.random().toString(36).slice(2, 7);
-  setPlayerId(id);
-  setRoom(code);
-
-  const roomRef = db.ref(`rooms/${code}`);
-  roomRef.once("value", snap => {
-    const data = snap.val();
-    const updatedPlayers = data?.players || [];
-    
-    if (!updatedPlayers.includes(id)) {
-      updatedPlayers.push(id);
-      db.ref(`rooms/${code}/players`).set(updatedPlayers);
-    }
-    setPlayers(updatedPlayers);
-
-    // 👇 If hand doesn't exist, assign 13 cards to this new player
-    const deck = data.deck || [];
-    const playerHandRef = db.ref(`rooms/${code}/hands/${id}`);
-    playerHandRef.once("value", handSnap => {
-      if (!handSnap.exists()) {
-        const newHand = deck.slice(0, 13);
-        const updatedDeck = deck.slice(13);
-        playerHandRef.set(newHand);
-        db.ref(`rooms/${code}/deck`).set(updatedDeck);
+      function drawCard() {
+        if (turn !== playerId) return;
+        db.ref(`rooms/${room}/deck`).once("value", snap => {
+          const deck = snap.val() || [];
+          if (deck.length === 0) return;
+          const drawn = deck.pop();
+          db.ref(`rooms/${room}/deck`).set(deck);
+          const newHand = [...hand, drawn];
+          db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
+        });
       }
-    });
-  });
 
-  // 🧠 Subscriptions
-  db.ref(`rooms/${code}/hands/${id}`).on("value", snap => {
-    if (snap.exists()) setHand(snap.val());
-  });
-  db.ref(`rooms/${code}/turn`).on("value", snap => {
-    if (snap.exists()) setTurn(snap.val());
-  });
-  db.ref(`rooms/${code}/deck`).on("value", snap => {
-    if (snap.exists()) setDeck(snap.val());
-  });
-};
-
-
-      const createRoom = () => {
-        const newCode = Math.random().toString(36).substr(2, 6).toUpperCase();
-        joinRoom(newCode);
-        const fullDeck = generateDeck();
-        const p1 = playerId || Math.random().toString(36).slice(2, 7);
-        const p2 = Math.random().toString(36).slice(2, 7);
-        const initial = {
-          players: [p1],
-          deck: fullDeck.slice(26),
-          hands: {
-            [p1]: fullDeck.slice(0, 13),
-          },
-          turn: p1,
-          discard: null,
-        };
-        db.ref(`rooms/${newCode}`).set(initial);
-        window.location.hash = newCode;
-      };
-
-      const drawCard = () => {
-        if (turn !== playerId || hasDrawn) return;
-        const topCard = deck.pop();
-        db.ref(`rooms/${room}/hands/${playerId}`).set([...hand, topCard]);
-        db.ref(`rooms/${room}/deck`).set(deck);
-        setHasDrawn(true);
-      };
-
-      const discardCard = (card) => {
-        if (turn !== playerId || !hasDrawn) return;
+      function discardCard(card) {
+        if (turn !== playerId) return;
         const newHand = hand.filter(c => c !== card);
         db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
+        db.ref(`rooms/${room}/discard`).set(card);
         const nextPlayer = players.find(p => p !== playerId);
         db.ref(`rooms/${room}/turn`).set(nextPlayer);
-        setHasDrawn(false);
         setSelected([]);
-      };
+      }
+
+      function meld() {
+        if (isValidMeld(selected)) {
+          setMessage("✅ Valid meld!");
+          const newHand = hand.filter(c => !selected.includes(c));
+          db.ref(`rooms/${room}/hands/${playerId}`).set(newHand);
+          setSelected([]);
+        } else {
+          setMessage("❌ Invalid meld!");
+        }
+      }
+
+      function declareWin() {
+        if (hand.length === 0) {
+          db.ref(`rooms/${room}/winner`).set(playerId);
+        } else {
+          setMessage("❌ Meld all cards first!");
+        }
+      }
+
+      function resetGame() {
+        const newDeck = generateDeck();
+        const split = Math.floor(newDeck.length / 2);
+        const hands = {
+          player1: newDeck.slice(0, 13),
+          player2: newDeck.slice(13, 26),
+        };
+        const newPlayers = ["player1", "player2"];
+        db.ref(`rooms/${room}`).set({
+          deck: newDeck.slice(26),
+          players: newPlayers,
+          turn: newPlayers[0],
+          hands,
+          discard: null,
+          winner: null,
+        });
+        setPlayerId(newPlayers[Math.floor(Math.random()*2)]);
+        setPlayers(newPlayers);
+      }
 
       useEffect(() => {
-        if (!room) return;
-        db.ref(`rooms/${room}/players`).on("value", snap => {
-          const arr = snap.val() || [];
-          setPlayers(arr);
-          const opp = arr.find(p => p !== playerId);
-          if (opp) {
-            db.ref(`rooms/${room}/hands/${opp}`).on("value", snap => {
-              setOpponentCards(snap.val()?.length || 0);
-            });
-          }
+        const hash = window.location.hash.slice(1);
+        if (!hash) return;
+        setRoom(hash);
+        const id = Math.random().toString(36).slice(2, 7);
+        setPlayerId(id);
+
+        db.ref(`rooms/${hash}/players`).once("value", snap => {
+          const existing = snap.val() || [];
+          const updated = existing.includes(id) ? existing : [...existing, id];
+          db.ref(`rooms/${hash}/players`).set(updated);
+          setPlayers(updated);
         });
-      }, [room]);
+
+        db.ref(`rooms/${hash}/hands/${id}`).on("value", snap => {
+          if (snap.exists()) setHand(snap.val());
+        });
+
+        db.ref(`rooms/${hash}/turn`).on("value", snap => {
+          if (snap.exists()) setTurn(snap.val());
+        });
+
+        db.ref(`rooms/${hash}/winner`).on("value", snap => {
+          if (snap.exists()) setWinner(snap.val());
+        });
+      }, []);
 
       return (
         <div className="p-4 text-center">
-          <h1 className="text-3xl font-bold text-rose-600 mb-4">💖 Love Rummy</h1>
+          <h1 className="text-3xl font-bold love-gradient text-transparent bg-clip-text mb-4">💖 Love Rummy</h1>
 
           {!room && (
-            <div className="space-y-4">
-              <button onClick={createRoom} className="px-6 py-3 bg-pink-500 text-white rounded-lg shadow">
+            <>
+              <button
+                onClick={() => {
+                  const newRoom = Math.random().toString(36).substr(2, 6).toUpperCase();
+                  setRoom(newRoom);
+                  window.location.hash = newRoom;
+                  resetGame();
+                }}
+                className="bg-pink-500 text-white px-6 py-3 rounded-lg shadow m-2"
+              >
                 Create Room
               </button>
-              <div className="flex justify-center gap-2">
-                <input
-                  value={roomInput}
-                  onChange={e => setRoomInput(e.target.value)}
-                  className="border px-4 py-2 rounded"
-                  placeholder="Enter Room Code"
-                />
-                <button
-                  onClick={() => joinRoom(roomInput)}
-                  className="bg-green-500 text-white px-4 py-2 rounded"
-                >
-                  Join
-                </button>
-              </div>
-            </div>
+              <button
+                onClick={() => {
+                  const joinCode = prompt("Enter Room Code");
+                  if (joinCode) {
+                    window.location.hash = joinCode.toUpperCase();
+                    window.location.reload();
+                  }
+                }}
+                className="bg-rose-500 text-white px-6 py-3 rounded-lg shadow m-2"
+              >
+                Join Room
+              </button>
+            </>
           )}
 
           {room && (
             <>
-              <h2 className="text-lg text-pink-700 mb-1">Room: {room}</h2>
-              <p className="text-sm text-gray-600 mb-2">
-                {turn === playerId ? "🎯 Your Turn" : "Waiting..."}
-              </p>
-
-              <div className="flex justify-center mb-2">
-                {[...Array(opponentCards)].map((_, i) => (
-                  <div key={i} className="card-back"></div>
-                ))}
-              </div>
+              <h2 className="text-lg text-pink-700">Room: {room}</h2>
+              {winner ? (
+                <h3 className="text-green-600 font-semibold mt-2">🎉 {winner} wins!</h3>
+              ) : (
+                <h3 className="mb-2 text-rose-500">{turn === playerId ? "🎯 Your Turn" : "Waiting..."}</h3>
+              )}
 
               <div className="flex flex-wrap justify-center mb-4">
-                {hand.map((card, idx) => (
-                  <div
-                    key={idx}
-                    className={`card ${selected.includes(card) ? "selected" : ""}`}
-                    onClick={() =>
+                {hand.map(card => (
+                  <Card
+                    key={card}
+                    card={card}
+                    selected={selected.includes(card)}
+                    toggle={() =>
                       setSelected(prev =>
                         prev.includes(card)
                           ? prev.filter(c => c !== card)
                           : [...prev, card]
                       )
                     }
-                  >
-                    {card}
-                  </div>
+                  />
                 ))}
               </div>
 
-              <div className="flex justify-center gap-2">
-                <button onClick={drawCard} className="bg-purple-500 text-white px-4 py-2 rounded">
-                  Draw
-                </button>
-                <button
-                  onClick={() => selected[0] && discardCard(selected[0])}
-                  className="bg-rose-500 text-white px-4 py-2 rounded"
-                >
-                  Discard
-                </button>
-              </div>
+              {!winner && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button onClick={drawCard} className="bg-purple-500 text-white px-4 py-2 rounded">Draw</button>
+                  <button onClick={() => discardCard(selected[0])} className="bg-rose-500 text-white px-4 py-2 rounded">Discard</button>
+                  <button onClick={meld} className="bg-yellow-500 text-white px-4 py-2 rounded">Meld</button>
+                  <button onClick={declareWin} className="bg-green-500 text-white px-4 py-2 rounded">Declare</button>
+                  <button onClick={resetGame} className="bg-gray-400 text-white px-4 py-2 rounded">Restart</button>
+                </div>
+              )}
 
               <p className="mt-4 text-pink-600">{message}</p>
             </>

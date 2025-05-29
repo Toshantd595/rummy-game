@@ -118,31 +118,47 @@
       const [message, setMessage] = useState("");
       const [roomInput, setRoomInput] = useState("");
 
-      const joinRoom = (code) => {
-        const id = Math.random().toString(36).slice(2, 7);
-        setPlayerId(id);
-        setRoom(code);
+const joinRoom = (code) => {
+  const id = Math.random().toString(36).slice(2, 7);
+  setPlayerId(id);
+  setRoom(code);
 
-        const roomRef = db.ref(`rooms/${code}`);
-        roomRef.once("value", snap => {
-          const data = snap.val();
-          const updatedPlayers = data?.players || [];
-          if (!updatedPlayers.includes(id)) {
-            db.ref(`rooms/${code}/players`).set([...updatedPlayers, id]);
-          }
-          setPlayers([...updatedPlayers, id]);
-        });
+  const roomRef = db.ref(`rooms/${code}`);
+  roomRef.once("value", snap => {
+    const data = snap.val();
+    const updatedPlayers = data?.players || [];
+    
+    if (!updatedPlayers.includes(id)) {
+      updatedPlayers.push(id);
+      db.ref(`rooms/${code}/players`).set(updatedPlayers);
+    }
+    setPlayers(updatedPlayers);
 
-        db.ref(`rooms/${code}/hands/${id}`).on("value", snap => {
-          if (snap.exists()) setHand(snap.val());
-        });
-        db.ref(`rooms/${code}/turn`).on("value", snap => {
-          if (snap.exists()) setTurn(snap.val());
-        });
-        db.ref(`rooms/${code}/deck`).on("value", snap => {
-          if (snap.exists()) setDeck(snap.val());
-        });
-      };
+    // 👇 If hand doesn't exist, assign 13 cards to this new player
+    const deck = data.deck || [];
+    const playerHandRef = db.ref(`rooms/${code}/hands/${id}`);
+    playerHandRef.once("value", handSnap => {
+      if (!handSnap.exists()) {
+        const newHand = deck.slice(0, 13);
+        const updatedDeck = deck.slice(13);
+        playerHandRef.set(newHand);
+        db.ref(`rooms/${code}/deck`).set(updatedDeck);
+      }
+    });
+  });
+
+  // 🧠 Subscriptions
+  db.ref(`rooms/${code}/hands/${id}`).on("value", snap => {
+    if (snap.exists()) setHand(snap.val());
+  });
+  db.ref(`rooms/${code}/turn`).on("value", snap => {
+    if (snap.exists()) setTurn(snap.val());
+  });
+  db.ref(`rooms/${code}/deck`).on("value", snap => {
+    if (snap.exists()) setDeck(snap.val());
+  });
+};
+
 
       const createRoom = () => {
         const newCode = Math.random().toString(36).substr(2, 6).toUpperCase();

@@ -1180,37 +1180,36 @@ function updateControlButtons(isMyTurn = null) {
             document.getElementById('gameOverModal').style.display = 'block';
         }
 
-        function discardCard() {
-            if (!gameState.hasDrawn) {
-    alert('You must draw a card before discarding! 💕');
-    return;
+function discardCard() {
+    if (!gameState.hasDrawn) {
+        alert('You must draw a card before discarding!');
+        return;
+    }
+
+    if (!gameState.gameData || !gameState.selectedCardIndex) return;
+
+    const data = gameState.gameData;
+    const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) ||
+                     (!gameState.isPlayerOne && data.currentTurn === 2);
+
+    const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
+    const hand = [...data.hands[playerKey]];
+    const discardIndex = gameState.selectedCardIndex - 1;
+    const discardCard = hand.splice(discardIndex, 1)[0];
+
+    const newDiscardPile = [...data.discardPile, discardCard];
+
+    const roomRef = database.ref('rooms/' + gameState.roomCode);
+    roomRef.update({
+        [`hands/${playerKey}`]: hand,
+        discardPile: newDiscardPile,
+        currentTurn: gameState.isPlayerOne ? 2 : 1
+    });
+
+    gameState.hasDrawn = false;
+    gameState.selectedCardIndex = null;
 }
 
-            if (gameState.selectedCards.length !== 1) {
-                alert('Please select exactly one card to discard! 💕');
-                return;
-            }
-
-            const data = gameState.gameData;
-            const roomRef = database.ref('rooms/' + gameState.roomCode);
-            const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
-            const currentHand = gameState.isPlayerOne ? data.hands.player1 : data.hands.player2;
-            
-            const discardIndex = gameState.selectedCards[0];
-            const discardedCard = currentHand[discardIndex];
-            const newHand = currentHand.filter((_, index) => index !== discardIndex);
-            const newDiscardPile = [...data.discardPile, discardedCard];
-            const nextTurn = data.currentTurn === 1 ? 2 : 1;
-
-            roomRef.update({
-                [`hands/${playerKey}`]: newHand,
-                discardPile: newDiscardPile,
-                currentTurn: nextTurn
-            });
-
-            gameState.selectedCards = [];
-            gameState.hasDrawn = false;
-        }
 
         // Initialize Firebase after functions are defined
         document.addEventListener('DOMContentLoaded', function() {

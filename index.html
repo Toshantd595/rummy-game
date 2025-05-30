@@ -506,7 +506,7 @@ function sortHand() {
     const currentHand = gameState.isPlayerOne ? gameState.gameData.hands.player1 : gameState.gameData.hands.player2;
 
     // Group by suit, sort within suit by rank
-    const suitOrder = ['♠', '♣', '♥', '♦'];
+    const suitOrder = ['♠️', '♣️', '♥️', '♦️'];
     const rankOrder = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
     const sorted = [...currentHand].sort((a, b) => {
@@ -787,7 +787,7 @@ function drawFromDiscard() {
         }
 
         // Helper functions
-const suits = ['♥', '♦', '♠', '♣'];  // ✅ Replace this line
+        const suits = ['♥️', '♦️', '♠️', '♣️'];
         const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         const cardValues = { 'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10 };
 
@@ -814,13 +814,9 @@ const suits = ['♥', '♦', '♠', '♣'];  // ✅ Replace this line
         }
 
 function startGame(roomRef) {
-    const deck = createDeck(); // properly shuffled deck
-
-    // Deal 7 cards each
+    const deck = createDeck();
     const player1Hand = deck.splice(0, 7);
     const player2Hand = deck.splice(0, 7);
-
-    // THEN take 1 card for discard
     const discardCard = deck.pop();
 
     roomRef.update({
@@ -832,9 +828,6 @@ function startGame(roomRef) {
         'hands/player2': player2Hand
     });
 }
-
-
-
 
 
 
@@ -924,10 +917,10 @@ function startGame(roomRef) {
 
     // Assign class based on suit
     let suitClass = '';
-    if (card.suit === '♥') suitClass = 'heart';
-    else if (card.suit === '♦') suitClass = 'diamond';
-    else if (card.suit === '♠') suitClass = 'spade';
-    else if (card.suit === '♣') suitClass = 'club';
+    if (card.suit === '♥️') suitClass = 'heart';
+    else if (card.suit === '♦️') suitClass = 'diamond';
+    else if (card.suit === '♠️') suitClass = 'spade';
+    else if (card.suit === '♣️') suitClass = 'club';
 
     cardDiv.className = `card ${suitClass}`;
       if (index !== null && gameState.selectedCards.includes(index)) {
@@ -953,9 +946,9 @@ function updateDiscardPile(discardPile) {
     const discardElement = document.createElement('div');
 
     let suitClass = '';
-    if (topCard.suit === '♥') suitClass = 'heart';
-    else if (topCard.suit === '♦') suitClass = 'diamond';
-    else if (topCard.suit === '♠') suitClass = 'spade';
+    if (topCard.suit === '♥️') suitClass = 'heart';
+    else if (topCard.suit === '♦️') suitClass = 'diamond';
+    else if (topCard.suit === '♠️') suitClass = 'spade';
     else suitClass = 'club';
 
     discardElement.className = `card ${suitClass}`;
@@ -981,9 +974,9 @@ function displayMelds(melds) {
 }
 
 function getSuitClass(suit) {
-    if (suit === '♥') return 'heart';
-    if (suit === '♦') return 'diamond';
-    if (suit === '♠') return 'spade';
+    if (suit === '♥️') return 'heart';
+    if (suit === '♦️') return 'diamond';
+    if (suit === '♠️') return 'spade';
     return 'club';
 }
 
@@ -992,10 +985,10 @@ function getSuitClass(suit) {
             const discardElement = document.getElementById('discardPile');
             discardElement.style.display = 'flex';
 let suitClass = '';
-if (topCard.suit === '♥') suitClass = 'heart';
-else if (topCard.suit === '♦') suitClass = 'diamond';
-else if (topCard.suit === '♠') suitClass = 'spade';
-else if (topCard.suit === '♣') suitClass = 'club';
+if (topCard.suit === '♥️') suitClass = 'heart';
+else if (topCard.suit === '♦️') suitClass = 'diamond';
+else if (topCard.suit === '♠️') suitClass = 'spade';
+else if (topCard.suit === '♣️') suitClass = 'club';
 
 discardElement.className = `card ${suitClass}`;
             discardElement.innerHTML = `
@@ -1140,8 +1133,8 @@ function updateControlButtons(isMyTurn = null) {
                 });
             } else {
                 const deck = createDeck();
-                const newPlayer1Hand = deck.splice(0, 10);
-                const newPlayer2Hand = deck.splice(0, 10);
+                const newPlayer1Hand = deck.splice(0, 7);
+                const newPlayer2Hand = deck.splice(0, 7);
                 const newDiscardPile = [deck.pop()];
                 
                 roomRef.update({
@@ -1180,36 +1173,32 @@ function updateControlButtons(isMyTurn = null) {
             document.getElementById('gameOverModal').style.display = 'block';
         }
 
-function discardCard() {
-    if (!gameState.hasDrawn) {
-        alert('You must draw a card before discarding!');
-        return;
-    }
+        function discardCard() {
+            if (gameState.selectedCards.length !== 1) {
+                alert('Please select exactly one card to discard! 💕');
+                return;
+            }
 
-    if (!gameState.gameData || !gameState.selectedCardIndex) return;
+            const data = gameState.gameData;
+            const roomRef = database.ref('rooms/' + gameState.roomCode);
+            const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
+            const currentHand = gameState.isPlayerOne ? data.hands.player1 : data.hands.player2;
+            
+            const discardIndex = gameState.selectedCards[0];
+            const discardedCard = currentHand[discardIndex];
+            const newHand = currentHand.filter((_, index) => index !== discardIndex);
+            const newDiscardPile = [...data.discardPile, discardedCard];
+            const nextTurn = data.currentTurn === 1 ? 2 : 1;
 
-    const data = gameState.gameData;
-    const isMyTurn = (gameState.isPlayerOne && data.currentTurn === 1) ||
-                     (!gameState.isPlayerOne && data.currentTurn === 2);
+            roomRef.update({
+                [`hands/${playerKey}`]: newHand,
+                discardPile: newDiscardPile,
+                currentTurn: nextTurn
+            });
 
-    const playerKey = gameState.isPlayerOne ? 'player1' : 'player2';
-    const hand = [...data.hands[playerKey]];
-    const discardIndex = gameState.selectedCardIndex - 1;
-    const discardCard = hand.splice(discardIndex, 1)[0];
-
-    const newDiscardPile = [...data.discardPile, discardCard];
-
-    const roomRef = database.ref('rooms/' + gameState.roomCode);
-    roomRef.update({
-        [`hands/${playerKey}`]: hand,
-        discardPile: newDiscardPile,
-        currentTurn: gameState.isPlayerOne ? 2 : 1
-    });
-
-    gameState.hasDrawn = false;
-    gameState.selectedCardIndex = null;
-}
-
+            gameState.selectedCards = [];
+            gameState.hasDrawn = false;
+        }
 
         // Initialize Firebase after functions are defined
         document.addEventListener('DOMContentLoaded', function() {

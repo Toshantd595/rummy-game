@@ -763,7 +763,7 @@ function drawFromDiscard() {
             
             const roomRef = database.ref('rooms/' + gameState.roomCode);
             const deck = createDeck();
-            const player1Hand = deck.splice(0, 7);
+            const player1Hand = deck.splice(0, 9);
             const player2Hand = deck.splice(0, 7);
             const discardPile = [deck.pop()];
 
@@ -815,7 +815,7 @@ const suits = ['♥', '♦', '♠', '♣'];  // ✅ Replace this line
 
 function startGame(roomRef) {
     const deck = createDeck();
-    const player1Hand = deck.splice(0, 7);         // Deal 7
+    const player1Hand = deck.splice(0, 9);         // Deal 7
     const player2Hand = deck.splice(0, 7);         // Deal 7
     const discardCard = deck.pop();                // Then discard 1
 

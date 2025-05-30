@@ -815,9 +815,9 @@ const suits = ['♥', '♦', '♠', '♣'];  // ✅ Replace this line
 
 function startGame(roomRef) {
     const deck = createDeck();
-    const discardCard = deck.pop(); // first card goes to discard
-    const player1Hand = deck.splice(0, 7);
-    const player2Hand = deck.splice(0, 7);
+    const player1Hand = deck.splice(0, 7);         // Deal 7
+    const player2Hand = deck.splice(0, 7);         // Deal 7
+    const discardCard = deck.pop();                // Then discard 1
 
     roomRef.update({
         gameStarted: true,
@@ -828,6 +828,7 @@ function startGame(roomRef) {
         'hands/player2': player2Hand
     });
 }
+
 
 
 
@@ -1175,6 +1176,11 @@ function updateControlButtons(isMyTurn = null) {
         }
 
         function discardCard() {
+            if (!gameState.hasDrawn) {
+    alert('You must draw a card before discarding! 💕');
+    return;
+}
+
             if (gameState.selectedCards.length !== 1) {
                 alert('Please select exactly one card to discard! 💕');
                 return;
